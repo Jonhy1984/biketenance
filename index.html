@@ -1,0 +1,2119 @@
+<!DOCTYPE html>
+<!-- Biketenance · versión GitHub 1 · 16 nov 2026 (sale del rediseño v3 de Apps Script) -->
+<!-- Va en: GitHub, repositorio biketenance, archivo index.html -->
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Biketenance</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0F1115">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --fondo: #0F1115; --tarjeta: #1A1D23; --tarjeta2: #22262E; --borde: #2A2F38; --linea: #23272F;
+      --texto: #F2F3F5; --suave: #A3A9B5; --tenue: #7C8391;
+      --naranja: #FF7A1A; --naranja-suave: rgba(255, 122, 26, 0.14);
+      --rojo: #FF5C5C; --amarillo: #F5C542; --verde: #3DD68C; --gris: #7C8391; --azul: #7FB2FF;
+      --abajo: env(safe-area-inset-bottom, 0px); --arriba: env(safe-area-inset-top, 0px);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; margin: 0; background: var(--fondo); color: var(--texto);
+      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 15px; }
+    button, input, select { font-family: inherit; }
+    #app { position: relative; height: 100%; max-width: 560px; margin: 0 auto; overflow: hidden; background: var(--fondo); }
+    #pantallas { position: absolute; inset: 0; }
+
+    /* ---------- Pantallas (cada una se desliza encima de la anterior) ---------- */
+    .pantalla { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--fondo);
+      transition: transform .26s cubic-bezier(.2, .8, .2, 1), opacity .26s; }
+    .pantalla.entra, .pantalla.sale { transform: translateX(100%); }
+    .pantalla.detras { transform: translateX(-22%); opacity: 0; pointer-events: none; }
+    .pantalla.oculta { display: none; }
+    .cuerpo { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 8px 18px 110px; -webkit-overflow-scrolling: touch; }
+    .sin-barra .cuerpo { padding-bottom: 28px; }
+    .barra-sup { display: flex; align-items: center; gap: 6px; padding: calc(10px + var(--arriba)) 10px 8px; min-height: 60px; }
+    .barra-sup h1 { flex: 1; margin: 0; font-size: 17px; font-weight: 700; text-align: center; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; }
+    .barra-sup .hueco { width: 44px; height: 44px; flex-shrink: 0; }
+    .titulo-grande { display: flex; justify-content: space-between; align-items: flex-end; padding: calc(30px + var(--arriba)) 0 14px; }
+    .titulo-grande .pre { font-size: 13px; color: var(--suave); font-weight: 500; margin-bottom: 4px; }
+    .titulo-grande h1 { margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -0.6px; color: var(--naranja); }
+    .pie { padding: 12px 18px calc(14px + var(--abajo)); border-top: 1px solid var(--linea); background: #13161B; display: flex; gap: 10px; }
+    .pie .boton { flex: 1; }
+
+    /* ---------- Barra de abajo ---------- */
+    #barra { position: absolute; left: 0; right: 0; bottom: 0; height: calc(70px + var(--abajo)); padding: 0 8px var(--abajo);
+      background: rgba(21, 24, 29, .96); border-top: 1px solid var(--linea); display: grid;
+      grid-template-columns: repeat(5, 1fr); align-items: center; z-index: 5; transition: transform .25s; }
+    #app.sin-barra #barra { transform: translateY(calc(100% + 40px)); }
+    .pestana { background: none; border: 0; color: var(--tenue); display: flex; flex-direction: column; align-items: center;
+      gap: 4px; font-size: 11px; font-weight: 600; padding: 8px 0; cursor: pointer; }
+    .pestana.activa { color: var(--naranja); }
+    .pestana .ico-tab { position: relative; display: inline-flex; }
+    .globo { position: absolute; top: -6px; left: 14px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+      font-size: 11px; font-weight: 800; color: #0F1115; display: flex; align-items: center; justify-content: center;
+      border: 2px solid #15181D; box-sizing: content-box; }
+    .pestana .gordo { width: 50px; height: 50px; border-radius: 25px; background: var(--naranja); color: #0F1115; display: flex;
+      align-items: center; justify-content: center; margin-top: -22px; box-shadow: 0 6px 20px rgba(255, 122, 26, .4); }
+
+    /* ---------- Piezas básicas ---------- */
+    .seccion { display: flex; justify-content: space-between; align-items: center; margin: 26px 2px 10px; }
+    .seccion h2 { margin: 0; font-size: 18px; font-weight: 700; }
+    .seccion .extra { font-size: 13px; color: var(--suave); }
+    .tarjeta { background: var(--tarjeta); border-radius: 18px; padding: 16px; }
+    .lista { background: var(--tarjeta); border-radius: 18px; overflow: hidden; }
+    .fila { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--linea);
+      background: none; border-left: 0; border-right: 0; border-top: 0; width: 100%; color: inherit; text-align: left;
+      font-size: inherit; cursor: pointer; }
+    div.fila { cursor: default; }
+    .lista > div > .fila:last-child { border-bottom: 0; }
+    .lista > .fila:last-child { border-bottom: 0; }
+    .fila .texto { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .fila .t1 { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+    .fila .t2 { font-size: 13px; color: var(--suave); }
+    .fila .chev { color: var(--tenue); flex-shrink: 0; }
+    .raya { width: 4px; align-self: stretch; min-height: 34px; border-radius: 2px; flex-shrink: 0; }
+    .pastilla { font-size: 12px; font-weight: 800; padding: 4px 9px; border-radius: 10px; color: #0F1115; white-space: nowrap; }
+    .pastilla.gris { background: var(--tarjeta2); color: var(--suave); }
+    .sub { color: var(--suave); font-size: 13px; line-height: 1.45; }
+    .vacio { text-align: center; padding: 40px 20px; color: var(--suave); }
+    .vacio .ico { width: 64px; height: 64px; border-radius: 32px; margin: 0 auto 14px; background: var(--tarjeta);
+      display: flex; align-items: center; justify-content: center; color: var(--naranja); }
+    .vacio b { display: block; color: var(--texto); font-size: 17px; margin-bottom: 6px; }
+
+    .boton { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 50px; padding: 0 18px;
+      border-radius: 14px; border: 0; font-size: 15px; font-weight: 700; cursor: pointer; background: var(--tarjeta2); color: var(--texto); }
+    .boton.principal { background: var(--naranja); color: #0F1115; }
+    .boton.peligro { background: rgba(255, 92, 92, .12); color: var(--rojo); }
+    .boton.peligro.seguro { background: var(--rojo); color: #0F1115; }
+    .boton.ancho { width: 100%; }
+    .boton.chico { min-height: 38px; padding: 0 14px; font-size: 14px; border-radius: 12px; }
+    .boton:disabled { opacity: .5; }
+    .boton-ico { width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--borde); background: var(--tarjeta);
+      color: var(--texto); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+    .boton-ico.limpio { border: 0; background: none; }
+    .girando svg { animation: girar 1s linear infinite; }
+    @keyframes girar { to { transform: rotate(360deg); } }
+
+    /* Formularios */
+    .campo { display: block; margin-bottom: 14px; }
+    .campo > span { display: block; font-size: 13px; color: var(--suave); font-weight: 600; margin: 0 0 6px 2px; }
+    .campo input, .campo select { width: 100%; min-height: 50px; padding: 0 14px; border-radius: 14px; border: 1px solid var(--borde);
+      background: var(--tarjeta); color: var(--texto); font-size: 16px; outline: none; }
+    .campo input:focus, .campo select:focus { border-color: var(--naranja); }
+    .campo input[type=date] { color-scheme: dark; }
+    .campo .ayuda { font-size: 12px; color: var(--tenue); margin: 6px 2px 0; line-height: 1.4; }
+    .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chips.rodar { flex-wrap: nowrap; overflow-x: auto; margin: 0 -18px; padding: 0 18px 2px; scrollbar-width: none; }
+    .chips.rodar::-webkit-scrollbar { display: none; }
+    .chip { min-height: 38px; padding: 0 14px; border-radius: 19px; border: 1px solid var(--borde); background: var(--tarjeta);
+      color: var(--suave); font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+    .chip.si { background: var(--naranja-suave); border-color: var(--naranja); color: var(--naranja); }
+    .segmento { display: flex; background: var(--tarjeta); border-radius: 14px; padding: 4px; gap: 4px; }
+    .segmento button { flex: 1; min-height: 40px; border: 0; border-radius: 11px; background: none; color: var(--suave);
+      font-size: 14px; font-weight: 700; cursor: pointer; }
+    .segmento button.si { background: var(--tarjeta2); color: var(--texto); }
+    .interruptor { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+    .interruptor input { appearance: none; -webkit-appearance: none; width: 50px; height: 30px; border-radius: 15px;
+      background: var(--borde); position: relative; flex-shrink: 0; cursor: pointer; transition: background .2s; margin: 0; }
+    .interruptor input::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 12px;
+      background: #fff; transition: left .2s; }
+    .interruptor input:checked { background: var(--naranja); }
+    .interruptor input:checked::after { left: 23px; }
+    .casilla { width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--borde); background: none; color: #0F1115;
+      display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; padding: 0; }
+    .casilla.si { background: var(--naranja); border-color: var(--naranja); }
+    .casilla svg { opacity: 0; }
+    .casilla.si svg { opacity: 1; }
+
+    /* Garaje */
+    .estado-sync { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--suave); margin-top: -4px;
+      background: none; border: 0; padding: 4px 0; cursor: pointer; text-align: left; }
+    .punto { width: 8px; height: 8px; border-radius: 4px; flex-shrink: 0; }
+    .numeros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+    .numero { background: var(--tarjeta); border-radius: 18px; padding: 14px; }
+    .numero b { display: block; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+    .numero span { font-size: 12px; color: var(--suave); font-weight: 600; }
+    .bici-card { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px; background: var(--tarjeta);
+      border-radius: 20px; border: 0; color: inherit; text-align: left; cursor: pointer; margin-bottom: 10px; font-size: inherit; }
+    .bici-ico { width: 54px; height: 54px; border-radius: 16px; background: var(--naranja-suave); color: var(--naranja);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .bici-card .nombre { font-size: 17px; font-weight: 700; }
+    .contador { min-width: 30px; height: 30px; padding: 0 9px; border-radius: 15px; display: flex; align-items: center;
+      justify-content: center; font-size: 13px; font-weight: 800; color: #0F1115; flex-shrink: 0; }
+    .todo-bien { display: flex; align-items: center; gap: 12px; }
+    .todo-bien .ok { width: 40px; height: 40px; border-radius: 20px; background: rgba(61, 214, 140, .15); color: var(--verde);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+    /* Bici y pieza */
+    .heroe { position: relative; overflow: hidden; background: var(--tarjeta); border-radius: 24px; padding: 20px; margin-bottom: 16px; }
+    .heroe::before { content: ''; position: absolute; right: -60px; top: -60px; width: 200px; height: 200px; border-radius: 100px;
+      background: radial-gradient(circle closest-side, rgba(255, 122, 26, .24), rgba(255, 122, 26, 0)); }
+    .heroe > * { position: relative; }
+    .heroe .tipo { display: inline-block; font-size: 12px; font-weight: 700; color: var(--naranja); background: var(--naranja-suave);
+      padding: 4px 10px; border-radius: 10px; text-transform: capitalize; }
+    .heroe .grande { font-size: 40px; font-weight: 900; letter-spacing: -1.2px; margin: 12px 0 2px; }
+    .heroe .grande small { font-size: 18px; font-weight: 700; color: var(--suave); letter-spacing: 0; margin-left: 4px; }
+    .heroe .mini { display: flex; gap: 18px; margin-top: 14px; }
+    .heroe .mini div { font-size: 12px; color: var(--suave); font-weight: 600; }
+    .heroe .mini b { display: block; font-size: 17px; color: var(--texto); }
+    .grupo { margin-bottom: 12px; }
+    .grupo-boton { display: flex; align-items: center; gap: 10px; width: 100%; padding: 15px 16px; background: none; border: 0;
+      color: var(--texto); font-size: 15px; font-weight: 700; text-align: left; cursor: pointer; }
+    .grupo-boton .cuenta { color: var(--tenue); font-weight: 600; flex: 1; }
+    .grupo-boton .chev { color: var(--tenue); transition: transform .2s; }
+    .grupo-boton.abierto .chev { transform: rotate(90deg); }
+    .grupo-boton.abierto { border-bottom: 1px solid var(--linea); }
+    .grupo-cab { display: flex; align-items: center; gap: 8px; padding: 0 4px 8px; font-size: 13px; font-weight: 700;
+      color: var(--suave); text-transform: uppercase; letter-spacing: .5px; }
+    .grupo-cab .cuenta { color: var(--tenue); font-weight: 600; }
+    .anillo { position: relative; width: 92px; height: 92px; flex-shrink: 0; }
+    .anillo svg { transform: rotate(-90deg); }
+    .anillo .valor { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .anillo .valor b { font-size: 22px; font-weight: 800; }
+    .anillo .valor span { font-size: 10px; color: var(--suave); font-weight: 600; }
+    .etiquetas { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .etiqueta { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 10px; background: var(--tarjeta2); color: var(--suave); }
+    .tarea { background: var(--tarjeta); border-radius: 18px; padding: 16px; margin-bottom: 10px; }
+    .tarea .cab { display: flex; align-items: center; gap: 12px; }
+    .tarea .ico { width: 40px; height: 40px; border-radius: 12px; background: var(--tarjeta2); color: var(--suave);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .medidor { height: 10px; border-radius: 5px; background: var(--tarjeta2); overflow: hidden; margin: 14px 0 8px; }
+    .medidor i { display: block; height: 100%; border-radius: 5px; }
+    .tarea .pie-t { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .acciones { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .accion { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 16px; border-radius: 18px;
+      background: var(--tarjeta); border: 0; color: var(--texto); font-size: 14px; font-weight: 700; cursor: pointer; text-align: left; }
+    .accion svg { color: var(--naranja); }
+    .zona-peligro { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--linea); }
+
+    /* Informes */
+    .total-grande { font-size: 40px; font-weight: 900; letter-spacing: -1.2px; margin: 4px 0 12px; }
+    .reparto { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--tarjeta2); }
+    .leyenda { display: flex; gap: 16px; margin-top: 10px; font-size: 13px; color: var(--suave); flex-wrap: wrap; }
+    .leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+    .grafico { display: flex; align-items: flex-end; gap: 10px; height: 170px; padding-top: 22px; overflow-x: auto; }
+    .columna { flex: 1; min-width: 34px; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%;
+      justify-content: flex-end; }
+    .columna i { width: 100%; max-width: 38px; border-radius: 8px 8px 4px 4px; background: var(--naranja); min-height: 4px; }
+    .columna span { font-size: 11px; color: var(--suave); font-weight: 600; }
+    .columna b { font-size: 11px; color: var(--texto); font-weight: 700; white-space: nowrap; }
+    .barra-h { height: 8px; border-radius: 4px; background: var(--tarjeta2); overflow: hidden; margin-top: 8px; }
+    .barra-h i { display: block; height: 100%; background: var(--naranja); border-radius: 4px; }
+    .baldosas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+    .baldosa { background: var(--tarjeta2); border-radius: 14px; padding: 12px 10px; }
+    .baldosa b { display: block; font-size: 16px; font-weight: 800; margin-top: 6px; white-space: nowrap; }
+    .baldosa span { font-size: 11px; color: var(--suave); font-weight: 600; }
+    .baldosa.falta b { color: var(--tenue); font-size: 14px; }
+    .buscador { position: relative; margin-bottom: 12px; }
+    .buscador svg { position: absolute; left: 14px; top: 15px; color: var(--tenue); }
+    .buscador input { width: 100%; min-height: 50px; padding: 0 14px 0 44px; border-radius: 14px; border: 1px solid var(--borde);
+      background: var(--tarjeta); color: var(--texto); font-size: 16px; outline: none; }
+    details.plegable summary { list-style: none; cursor: pointer; }
+    details.plegable summary::-webkit-details-marker { display: none; }
+
+    /* Asistente */
+    .pasos { display: flex; gap: 6px; padding: 0 18px 6px; }
+    .pasos i { flex: 1; height: 4px; border-radius: 2px; background: var(--borde); }
+    .pasos i.si { background: var(--naranja); }
+    .pregunta { margin-bottom: 18px; }
+    .pregunta > span { display: block; font-size: 14px; font-weight: 700; margin: 0 0 8px 2px; }
+    .pieza-asist { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--linea); }
+    .pieza-asist:last-child { border-bottom: 0; }
+    .pieza-asist .nom { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; }
+    .pieza-asist .nom small { display: block; font-size: 12px; color: var(--tenue); font-weight: 500; margin-top: 2px; }
+    .pieza-asist.fuera .nom { color: var(--tenue); text-decoration: line-through; }
+    .orig { font-size: 11px; font-weight: 700; padding: 6px 9px; border-radius: 9px; border: 1px solid var(--borde); background: none;
+      color: var(--tenue); cursor: pointer; }
+    .orig.si { border-color: var(--verde); color: var(--verde); background: rgba(61, 214, 140, .1); }
+
+    /* Esqueleto de carga */
+    .esqueleto { background: linear-gradient(90deg, var(--tarjeta) 0%, var(--tarjeta2) 50%, var(--tarjeta) 100%);
+      background-size: 200% 100%; animation: brillo 1.2s infinite; border-radius: 18px; }
+    @keyframes brillo { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+
+    /* Mensaje flotante */
+    #mensaje { position: absolute; left: 14px; right: 14px; bottom: calc(84px + var(--abajo)); padding: 13px 16px; border-radius: 14px;
+      background: #2A2F38; color: #fff; font-size: 14px; font-weight: 600; box-shadow: 0 8px 24px rgba(0, 0, 0, .45); z-index: 20;
+      transition: opacity .2s, transform .2s; }
+    #app.sin-barra #mensaje { bottom: calc(92px + var(--abajo)); }
+    #mensaje.error { background: #B3261E; }
+    #mensaje.oculto { opacity: 0; transform: translateY(12px); pointer-events: none; }
+
+    /* Pantalla de conexión (la primera vez, o al cambiar la dirección o la clave) */
+    #config { position: absolute; inset: 0; z-index: 30; background: var(--fondo); overflow-y: auto;
+      padding: calc(34px + var(--arriba)) 22px calc(30px + var(--abajo)); }
+    #config .logo { width: 76px; height: 76px; margin-bottom: 18px; }
+    #config .logo svg { width: 100%; height: 100%; display: block; }
+    #config h1 { margin: 0 0 6px; font-size: 32px; font-weight: 800; letter-spacing: -0.6px; color: var(--naranja); }
+    #config .estado { min-height: 20px; margin: 2px 2px 14px; font-size: 14px; font-weight: 600; line-height: 1.4; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="pantallas"></div>
+    <nav id="barra">
+      <button type="button" class="pestana activa" data-tab="garaje"></button>
+      <button type="button" class="pestana" data-tab="avisos"></button>
+      <button type="button" class="pestana" data-tab="nueva"></button>
+      <button type="button" class="pestana" data-tab="informes"></button>
+      <button type="button" class="pestana" data-tab="ajustes"></button>
+    </nav>
+    <div id="mensaje" class="oculto"></div>
+  </div>
+
+  <script>
+    var VERSION_APP = 'GitHub 1 (rediseño 3) · 16 nov 2026';
+
+    // =====================================================================
+    //  Utilidades
+    // =====================================================================
+
+    var version = 0;            // sube con cada cambio guardado: al volver, las pantallas se recargan solas
+    function huboCambio() { version++; }
+
+    // Crea un elemento: h('div', { class: 'x', onclick: f }, hijos...)
+    function h(tag, props) {
+      var el = document.createElement(tag);
+      if (props) Object.keys(props).forEach(function (k) {
+        var v = props[k];
+        if (v === null || v === undefined || v === false) return;
+        if (k === 'class') el.className = v;
+        else if (k === 'text') el.textContent = v;
+        else if (k.indexOf('on') === 0) el.addEventListener(k.substring(2), v);
+        else if (k === 'style') el.setAttribute('style', v);
+        else if (k in el && k !== 'list') el[k] = v;
+        else el.setAttribute(k, v === true ? '' : v);
+      });
+      for (var i = 2; i < arguments.length; i++) poner(el, arguments[i]);
+      return el;
+    }
+    function poner(el, x) {
+      if (x === null || x === undefined || x === false) return;
+      if (Array.isArray(x)) { x.forEach(function (y) { poner(el, y); }); return; }
+      el.appendChild(typeof x === 'object' ? x : document.createTextNode(String(x)));
+    }
+    function vaciar(el) { el.textContent = ''; return el; }
+
+    var ICONOS = {
+      atras: '<path d="M15 18l-6-6 6-6"/>',
+      mas: '<path d="M12 5v14M5 12h14"/>',
+      garaje: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+      informes: '<path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-6"/><path d="M22 20H2"/>',
+      ajustes: '<path d="M4 6h10"/><path d="M18 6h2"/><path d="M4 12h4"/><path d="M12 12h8"/><path d="M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+      sync: '<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v4h-4"/>',
+      bici: '<circle cx="5.5" cy="16.5" r="3.5"/><circle cx="18.5" cy="16.5" r="3.5"/><path d="M5.5 16.5L9 9h7l2.5 7.5"/><path d="M9 9l3.5 7.5h-1"/><path d="M14.5 6H17"/>',
+      lapiz: '<path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/>',
+      llave: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L4 16.8V20h3.2l5.3-5.3a4 4 0 0 0 5.2-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>',
+      lupa: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
+      check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+      flecha: '<path d="M9 6l6 6-6 6"/>',
+      cambiar: '<path d="M4 7h13l-3-3"/><path d="M20 17H7l3 3"/>',
+      historial: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/><path d="M12 8v4l3 2"/>',
+      papelera: '<path d="M4 7h16"/><path d="M6 7v12a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7"/><path d="M9 7V4h6v3"/>',
+      caja: '<path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/>',
+      campana: '<path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21h4"/>',
+      silencio: '<path d="M6 8a6 6 0 0 1 9.5-4.9M18 8c0 7 3 9 3 9H9"/><path d="M10 21h4"/><path d="M3 3l18 18"/>',
+      euro: '<path d="M17 6.5A7 7 0 1 0 17 17.5"/><path d="M4 10h9M4 14h9"/>',
+      reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+      calendario: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+      ruta: '<circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h8a3 3 0 0 0 0-6H8a3 3 0 0 1 0-6h8"/>',
+      enlace: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+      aviso: '<path d="M12 3l10 18H2L12 3z"/><path d="M12 10v5M12 18v.5"/>',
+      info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
+      herramienta: '<path d="M4 20l7-7"/><path d="M13 5l6 6-3 3-6-6z"/>',
+      paleta: '<circle cx="12" cy="12" r="9"/><circle cx="8" cy="10" r="1.2"/><circle cx="12" cy="7.5" r="1.2"/><circle cx="16" cy="10" r="1.2"/><path d="M12 21a3 3 0 0 1 0-6h2"/>'
+    };
+    // Un dibujo por tipo de bici
+    var BICIS = {
+      carretera: '<circle cx="5.5" cy="16.5" r="3.5"/><circle cx="18.5" cy="16.5" r="3.5"/><path d="M5.5 16.5L9.5 10L12 16.5Z"/><path d="M9.5 10H16L12 16.5"/><path d="M16 10l2.5 6.5"/><path d="M9.5 10L9 7.8M7.8 7.8h2.4"/><path d="M16 10l.4-2.4h1.6c1.2 0 1.2 2.6 0 2.6"/>',
+      MTB: '<circle cx="5.5" cy="16.5" r="3.2" stroke-width="2.6"/><circle cx="18.5" cy="16.5" r="3.2" stroke-width="2.6"/><circle cx="5.5" cy="16.5" r="4.6" stroke-dasharray="0.8 1.4" stroke-width="1.4"/><circle cx="18.5" cy="16.5" r="4.6" stroke-dasharray="0.8 1.4" stroke-width="1.4"/><path d="M5.5 16.5L10 10.5L12 16.5Z"/><path d="M10 10.5L15.5 9L12 16.5"/><path d="M15.5 9l3 7.5"/><path d="M16.1 10.6l1 2.5" stroke-width="3.4"/><path d="M15.5 9l.3-2M14.2 7h3.4"/><path d="M10 10.5l-.4-2.3M8.4 8.2h2.4"/>',
+      gravel: '<circle cx="5.5" cy="15.5" r="3.5"/><circle cx="18.5" cy="15.5" r="3.5"/><path d="M5.5 15.5L9.5 9L12 15.5Z"/><path d="M9.5 9H16L12 15.5"/><path d="M16 9l2.5 6.5"/><path d="M9.5 9L9 6.8M7.8 6.8h2.4"/><path d="M16 9l.4-2.4h1.6c1.2 0 1.2 2.6 0 2.6"/><path d="M2 21.5h.01M6 22h.01M10 21.4h.01M14 22h.01M18 21.5h.01M22 21.9h.01" stroke-width="2.6"/>',
+      cabra: '<circle cx="5.5" cy="16.5" r="3.5" fill="currentColor" fill-opacity=".3"/><circle cx="18.5" cy="16.5" r="3.5"/><path d="M18.5 16.5v-3.5M18.5 16.5l3 1.7M18.5 16.5l-3 1.7"/><path d="M5.5 16.5L10.5 10L12 16.5Z"/><path d="M10.5 10H16L12 16.5"/><path d="M16 10l2.5 6.5"/><path d="M10.5 10l.2-2.3M9.4 7.7h2.6"/><path d="M15 10h7M17 10V8.6"/>',
+      rodillo: '<circle cx="6" cy="14" r="3.5"/><circle cx="18" cy="14" r="3.5"/><path d="M6 14L10 8L12.5 14Z"/><path d="M10 8H16.5L12.5 14"/><path d="M16.5 8L18 14"/><path d="M10 8l-.4-2M8.4 6h2.4"/><path d="M16.5 8l.4-2h1.5c1.1 0 1.1 2.3 0 2.3"/><path d="M3.5 21L6 14l2.5 7M2 21h20"/><rect x="15.5" y="17.6" width="5" height="3.4" rx=".6"/>',
+      urbana: '<circle cx="5.5" cy="16.5" r="3.5"/><circle cx="18.5" cy="16.5" r="3.5"/><path d="M5.5 16.5L9.5 10.5L12 16.5Z"/><path d="M12 16.5C12.5 12.5 13.5 10.5 15.5 9.5L18.5 16.5"/><path d="M15.5 9.5l-.6-3h2.6"/><path d="M9.5 10.5l-.4-2.2M8.2 8.3h2.4"/><rect x="16.6" y="9.6" width="4.4" height="2.8" rx=".6"/>',
+      'niño': '<circle cx="7" cy="17.4" r="2.6"/><circle cx="17" cy="17.4" r="2.6"/><path d="M7 17.4L10 12L12 17.4Z"/><path d="M10 12H15L12 17.4"/><path d="M15 12l2 5.4"/><path d="M15 12l-.3-2.5M13.6 9.5h2.6"/><path d="M10 12l-.3-1.8M8.8 10.2h2.2"/><circle cx="3.2" cy="19.4" r="1.1"/><path d="M3.2 19.4L7 17.4"/>',
+      BMX: '<circle cx="5.8" cy="16.7" r="3.3"/><circle cx="18.2" cy="16.7" r="3.3"/><path d="M5.8 16.7L9 12.5L11.5 16.7Z"/><path d="M9 12.5L15.5 11.5L11.5 16.7"/><path d="M15.5 11.5l2.7 5.2"/><path d="M15.5 11.5l1-5M14.8 6.5h3.6M15.3 8.6h2.6"/><path d="M9 12.5l-.3-1.3M7.8 11.2h2.4"/>',
+      fixie: '<circle cx="5.5" cy="16.5" r="3.5"/><circle cx="18.5" cy="16.5" r="3.5"/><circle cx="5.5" cy="16.5" r="1.6"/><circle cx="18.5" cy="16.5" r="1.6"/><path d="M5.5 16.5L9.5 10L12 16.5"/><path d="M9.5 10H16L12 16.5"/><path d="M16 10l2.5 6.5"/><path d="M9.5 10L9 7.8M7.8 7.8h2.4"/><path d="M16 10l.3-2h3.2l.8-1"/>'
+    };
+    // Icono de la app (plato naranja con bici blanca), para la pantalla de conexión
+    var LOGO = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#0F1115"/><path d="M256.0 100.0 L262.2 80.1 L270.5 80.6 L274.3 101.1 L286.4 103.0 L296.4 84.7 L304.4 86.8 L304.2 107.6 L315.7 111.9 L329.1 95.9 L336.5 99.5 L332.2 119.9 L342.7 126.3 L358.9 113.2 L365.5 118.2 L357.3 137.4 L366.3 145.7 L384.8 136.0 L390.3 142.2 L378.5 159.4 L385.7 169.3 L405.7 163.5 L409.9 170.6 L395.0 185.2 L400.1 196.3 L420.9 194.4 L423.6 202.3 L406.1 213.7 L409.0 225.6 L429.7 227.8 L430.9 236.0 L411.5 243.8 L412.0 256.0 L431.9 262.2 L431.4 270.5 L410.9 274.3 L409.0 286.4 L427.3 296.4 L425.2 304.4 L404.4 304.2 L400.1 315.7 L416.1 329.1 L412.5 336.5 L392.1 332.2 L385.7 342.7 L398.8 358.9 L393.8 365.5 L374.6 357.3 L366.3 366.3 L376.0 384.8 L369.8 390.3 L352.6 378.5 L342.7 385.7 L348.5 405.7 L341.4 409.9 L326.8 395.0 L315.7 400.1 L317.6 420.9 L309.7 423.6 L298.3 406.1 L286.4 409.0 L284.2 429.7 L276.0 430.9 L268.2 411.5 L256.0 412.0 L249.8 431.9 L241.5 431.4 L237.7 410.9 L225.6 409.0 L215.6 427.3 L207.6 425.2 L207.8 404.4 L196.3 400.1 L182.9 416.1 L175.5 412.5 L179.8 392.1 L169.3 385.7 L153.1 398.8 L146.5 393.8 L154.7 374.6 L145.7 366.3 L127.2 376.0 L121.7 369.8 L133.5 352.6 L126.3 342.7 L106.3 348.5 L102.1 341.4 L117.0 326.8 L111.9 315.7 L91.1 317.6 L88.4 309.7 L105.9 298.3 L103.0 286.4 L82.3 284.2 L81.1 276.0 L100.5 268.2 L100.0 256.0 L80.1 249.8 L80.6 241.5 L101.1 237.7 L103.0 225.6 L84.7 215.6 L86.8 207.6 L107.6 207.8 L111.9 196.3 L95.9 182.9 L99.5 175.5 L119.9 179.8 L126.3 169.3 L113.2 153.1 L118.2 146.5 L137.4 154.7 L145.7 145.7 L136.0 127.2 L142.2 121.7 L159.4 133.5 L169.3 126.3 L163.5 106.3 L170.6 102.1 L185.2 117.0 L196.3 111.9 L194.4 91.1 L202.3 88.4 L213.7 105.9 L225.6 103.0 L227.8 82.3 L236.0 81.1 L243.8 100.5 Z" fill="#FF7A1A"/><circle cx="256" cy="256" r="120" fill="#0F1115"/><circle cx="256.0" cy="118.0" r="11" fill="#0F1115"/><circle cx="387.2" cy="213.4" r="11" fill="#0F1115"/><circle cx="337.1" cy="367.6" r="11" fill="#0F1115"/><circle cx="174.9" cy="367.6" r="11" fill="#0F1115"/><circle cx="124.8" cy="213.4" r="11" fill="#0F1115"/><g transform="translate(160 158.4) scale(8)" fill="none" stroke="#F2F3F5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="16.5" r="3.5"/><circle cx="18.5" cy="16.5" r="3.5"/><path d="M5.5 16.5L9.5 10L12 16.5Z"/><path d="M9.5 10H16L12 16.5"/><path d="M16 10l2.5 6.5"/><path d="M9.5 10L9 7.8M7.8 7.8h2.4"/><path d="M16 10l.4-2.4h1.6c1.2 0 1.2 2.6 0 2.6"/></g></svg>';
+    function iconoBici(tipo, tam) {
+      var s = icono('bici', tam);
+      if (BICIS[tipo]) s.innerHTML = BICIS[tipo];
+      s.setAttribute('stroke-width', '1.8');
+      return s;
+    }
+    function icono(nombre, tam) {
+      var s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      s.setAttribute('viewBox', '0 0 24 24');
+      s.setAttribute('width', tam || 22);
+      s.setAttribute('height', tam || 22);
+      s.setAttribute('fill', 'none');
+      s.setAttribute('stroke', 'currentColor');
+      s.setAttribute('stroke-width', '2');
+      s.setAttribute('stroke-linecap', 'round');
+      s.setAttribute('stroke-linejoin', 'round');
+      s.setAttribute('aria-hidden', 'true');
+      s.innerHTML = ICONOS[nombre] || '';
+      return s;
+    }
+
+    // Números y fechas a la española
+    function miles(n) {
+      var x = Math.round(Number(n) || 0);
+      return (x < 0 ? '-' : '') + String(Math.abs(x)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+    function km(n) { return miles(n) + ' km'; }
+    function eur(n) {
+      var x = Math.round((Number(n) || 0) * 100);
+      var neg = x < 0; x = Math.abs(x);
+      return (neg ? '-' : '') + miles(Math.floor(x / 100)) + ',' + ('0' + (x % 100)).slice(-2) + ' €';
+    }
+    function eurCorto(n) { return eur(n).replace(',00 €', ' €'); }
+    function eurFino(n) {
+      return (Number(n) || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 3 }) + ' €';
+    }
+    var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    var MESES_C = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    var DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    function textoDia(d) {
+      return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+    }
+    function hoyTexto() { return textoDia(new Date()); }
+    // "2026-11-12" -> "12 nov 2026"
+    function fechaBonita(iso) {
+      var s = String(iso || '');
+      if (s.length < 10) return s || '?';
+      return Number(s.substring(8, 10)) + ' ' + MESES_C[Number(s.substring(5, 7)) - 1] + ' ' + s.substring(0, 4);
+    }
+    // "12/11/2026" -> "12 nov 2026"
+    function fechaDMY(t) {
+      var m = String(t || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      return m ? fechaBonita(m[3] + '-' + m[2] + '-' + m[1]) : (t || '?');
+    }
+    function textoDias(n) { return n + (n === 1 ? ' día' : ' días'); }
+    function mayuscula(t) { t = String(t || ''); return t.charAt(0).toUpperCase() + t.substring(1); }
+    function sinTildes(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+
+    // ---------- Avisos: colores y textos ----------
+    // verde = bien · azul = próximo (80 %) · amarillo = desde el 95 % · rojo = vencida · gris = sin aviso
+    var COLOR = { vencida: 'var(--rojo)', aviso: 'var(--amarillo)', proximo: 'var(--azul)', ok: 'var(--verde)' };
+    function colorEstado(estado, sinAviso) { return sinAviso ? 'var(--gris)' : (COLOR[estado] || 'var(--gris)'); }
+
+    function textoFalta(t) {
+      var partes = [];
+      if (t.faltaKm != null) {
+        if (t.faltaKm > 0) partes.push('faltan ' + km(t.faltaKm));
+        else if (t.faltaKm === 0) partes.push('toca ya');
+        else partes.push(km(-t.faltaKm) + ' tarde');
+      }
+      if (t.faltaDias != null) {
+        if (t.faltaDias > 0) partes.push('faltan ' + textoDias(t.faltaDias));
+        else if (t.faltaDias === 0) partes.push('toca hoy');
+        else partes.push(textoDias(-t.faltaDias) + ' tarde');
+      }
+      return partes.join(' · ');
+    }
+    function textoReloj(t) {
+      var partes = [];
+      if (t.cadaKm != null && t.cadaKm !== '') partes.push(km(t.cadaKm));
+      if (t.cadaDias != null && t.cadaDias !== '') partes.push(textoDias(Number(t.cadaDias)));
+      return partes.length ? 'cada ' + partes.join(' o ') : 'sin reloj';
+    }
+    // La tarea con el % más alto de una pieza (o null si no tiene relojes)
+    function peorTarea(p) {
+      var peor = null;
+      (p.tareas || []).forEach(function (t) {
+        if (t.pct != null && (!peor || t.pct > peor.pct)) peor = t;
+      });
+      return peor;
+    }
+    function contarAvisos(piezas) {
+      var c = { rojos: 0, amarillos: 0 };
+      piezas.forEach(function (p) {
+        if (p.sinAviso) return;
+        (p.tareas || []).forEach(function (t) {
+          if (t.estado === 'vencida') c.rojos++;
+          if (t.estado === 'aviso') c.amarillos++;
+        });
+      });
+      return c;
+    }
+
+    // ---------- Mensaje flotante ----------
+    var relojMensaje = null;
+    function avisar(texto) {
+      var m = document.getElementById('mensaje');
+      clearTimeout(relojMensaje);
+      if (!texto) { m.className = 'oculto'; return; }
+      var esError = texto.indexOf('Error') === 0;
+      m.textContent = esError ? texto + '  ✕' : texto;
+      m.className = esError ? 'error' : '';
+      if (!esError && texto.indexOf('...') === -1) relojMensaje = setTimeout(function () { m.className = 'oculto'; }, 3500);
+    }
+
+    // =====================================================================
+    //  Conexión con la hoja (la "puerta" de Apps Script)
+    // =====================================================================
+
+    // La dirección de la puerta y la clave NO van en este archivo: se escriben una vez
+    // en la pantalla de conexión y se guardan en este navegador (localStorage).
+    var GUARDA_URL = 'biketenance.puerta';
+    var GUARDA_CLAVE = 'biketenance.clave';
+    var conf = leerConfig();   // copia en memoria (sirve aunque el navegador no deje guardar)
+
+    function leerConfig() {
+      try { return { url: localStorage.getItem(GUARDA_URL) || '', clave: localStorage.getItem(GUARDA_CLAVE) || '' }; }
+      catch (e) { return { url: '', clave: '' }; }
+    }
+    function guardarConfig(url, clave) {
+      conf = { url: url, clave: clave };
+      try { localStorage.setItem(GUARDA_URL, url); localStorage.setItem(GUARDA_CLAVE, clave); return true; }
+      catch (e) { return false; }
+    }
+    function olvidarConfig() {
+      conf = { url: '', clave: '' };
+      try { localStorage.removeItem(GUARDA_URL); localStorage.removeItem(GUARDA_CLAVE); } catch (e) { /* nada */ }
+    }
+
+    // Manda { k: clave, f: función, a: [argumentos] } a la puerta y devuelve su respuesta { ok, r, error }.
+    // Va como texto (text/plain) para que el navegador no haga la pregunta previa de CORS.
+    function pedirPuerta(url, clave, funcion, args) {
+      return fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ k: clave, f: funcion, a: args || [] })
+      }).catch(function () {
+        throw new Error(navigator.onLine === false ? 'Sin internet. Prueba otra vez cuando tengas cobertura.'
+          : 'No llego a la puerta. Mira la cobertura y que la dirección esté bien.');
+      }).then(function (resp) {
+        return resp.text().then(function (texto) {
+          try { return JSON.parse(texto); }
+          catch (e) { throw new Error('La puerta no ha contestado bien (código ' + resp.status + '). ¿Es la dirección de "fase 5 puerta"?'); }
+        });
+      });
+    }
+
+    // ---------- Hablar con el servidor ----------
+    // llamar('funcion', [argumentos], alAcabarBien, alFallar) — igual que antes con google.script.run
+    function llamar(funcion, args, ok, ko) {
+      function fallo(texto) { if (ko) ko(new Error(texto)); else avisar('Error: ' + texto); }
+      if (!conf.url || !conf.clave) { mostrarConfig({ primera: true }); fallo('Falta conectar la app con tu hoja.'); return; }
+      pedirPuerta(conf.url, conf.clave, funcion, args).then(function (res) {
+        if (res && res.ok) { if (ok) ok(res.r); return; }
+        var texto = (res && res.error) || 'Respuesta rara del servidor.';
+        if (texto === 'Clave incorrecta.') mostrarConfig({ motivo: 'La clave guardada no vale. Escribe la buena.' });
+        fallo(texto);
+      }, function (e) {
+        fallo(e.message);
+      }).catch(function (e) { if (window.console) console.error(e); });
+    }
+
+    // Botón que guarda: se bloquea mientras tanto y, si va bien, apunta que hubo cambios
+    function guardar(boton, funcion, args, textoOk, despues) {
+      boton.disabled = true;
+      avisar('Guardando...');
+      llamar(funcion, args, function (res) {
+        huboCambio();
+        avisar(typeof textoOk === 'function' ? textoOk(res) : textoOk);
+        if (despues) despues(res);
+      }, function (e) {
+        boton.disabled = false;
+        avisar('Error: ' + e.message);
+      });
+    }
+
+    // Botón de doble pulsación para lo delicado
+    function botonSeguro(texto, textoSeguro, clase, accion) {
+      var listo = false;
+      var b = h('button', { type: 'button', class: 'boton ancho ' + (clase || 'peligro'), text: texto });
+      b.addEventListener('click', function () {
+        if (!listo) { listo = true; b.textContent = textoSeguro; b.classList.add('seguro'); return; }
+        accion(b);
+      });
+      return b;
+    }
+
+    // ---------- Pantalla de conexión ----------
+    // op: { primera: true } = sin botón Cancelar · { motivo: 'texto' } = explica por qué sale
+    var capaConfig = null;
+    function mostrarConfig(op) {
+      op = op || {};
+      if (capaConfig) return;
+      var url = campo('Dirección de la puerta', { type: 'url', value: conf.url, placeholder: 'https://script.google.com/macros/s/.../exec',
+        autocapitalize: 'off' }, 'La "URL puerta" que tienes apuntada (implementación "fase 5 puerta"). Empieza por https://script.google.com y acaba en /exec.');
+      var clave = campo('Clave de la app', { type: 'password', value: conf.clave, autocapitalize: 'off' },
+        'La APP_KEY de las propiedades del script. Se guarda solo en este navegador.');
+      url.input.spellcheck = false;
+      clave.input.spellcheck = false;
+      var ver = h('button', { type: 'button', class: 'chip', text: 'Ver clave', style: 'margin:-4px 0 14px' });
+      ver.addEventListener('click', function () {
+        var oculta = clave.input.type === 'password';
+        clave.input.type = oculta ? 'text' : 'password';
+        ver.textContent = oculta ? 'Ocultar clave' : 'Ver clave';
+      });
+      var estado = h('div', { class: 'estado', style: 'color:var(--amarillo)', text: op.motivo || '' });
+      var probar = h('button', { type: 'button', class: 'boton principal ancho' }, icono('enlace', 20), 'Probar y guardar');
+      var cancelar = (op.primera || !arrancada) ? null : h('button', { type: 'button', class: 'boton ancho', style: 'margin-top:10px', text: 'Cancelar',
+        onclick: function () { cerrarConfig(false); } });
+
+      function decir(texto, color) { estado.textContent = texto; estado.style.color = color || 'var(--suave)'; }
+
+      probar.addEventListener('click', function () {
+        var u = url.input.value.trim();
+        var k = clave.input.value.trim();
+        if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(u)) { decir('La dirección tiene que empezar por https://script.google.com/ y acabar en /exec.', 'var(--rojo)'); return; }
+        if (!k) { decir('Falta la clave.', 'var(--rojo)'); return; }
+        probar.disabled = true;
+        decir('Probando la conexión...', 'var(--naranja)');
+        pedirPuerta(u, k, 'ping', []).then(function (res) {
+          if (res && res.ok && res.r === 'pong') {
+            var guardada = guardarConfig(u, k);
+            cerrarConfig(true, guardada);
+            return;
+          }
+          probar.disabled = false;
+          var t = (res && res.error) || 'Respuesta rara de la puerta.';
+          decir(t === 'Clave incorrecta.' ? 'La puerta responde, pero la clave no vale. Revísala (mayúsculas incluidas).' : t, 'var(--rojo)');
+        }, function (e) {
+          probar.disabled = false;
+          decir(e.message, 'var(--rojo)');
+        });
+      });
+
+      var logo = h('div', { class: 'logo' });
+      logo.innerHTML = LOGO;
+      capaConfig = h('div', { id: 'config' }, logo, h('h1', { text: 'Biketenance' }),
+        h('p', { class: 'sub', style: 'margin:0 0 22px', text: 'Conecta la app con tu hoja de Google. Solo hace falta una vez en cada móvil u ordenador.' }),
+        url.el, clave.el, ver, estado, probar, cancelar);
+      document.getElementById('app').appendChild(capaConfig);
+    }
+
+    // conectada = true si se acaba de probar y guardar una conexión buena
+    function cerrarConfig(conectada, guardada) {
+      if (capaConfig) capaConfig.remove();
+      capaConfig = null;
+      if (!conectada) return;
+      if (!arrancada) { arrancar(); }
+      else { huboCambio(); mostrar(arriba()); sincronizar(); }
+      avisar(guardada === false ? 'Conectada ✅ (este navegador no deja guardarla: se olvidará al cerrar)' : 'Conectada ✅');
+    }
+
+    // ---------- Piezas de formulario ----------
+    function campo(etiqueta, props, ayuda) {
+      var input = h('input', Object.assign({ autocomplete: 'off' }, props));
+      if (props && props.type === 'number') { input.inputMode = 'decimal'; if (!props.step) input.step = '0.01'; if (props.min == null) input.min = '0'; }
+      var el = h('label', { class: 'campo' }, h('span', { text: etiqueta }), input, ayuda ? h('div', { class: 'ayuda', text: ayuda }) : null);
+      return { el: el, input: input };
+    }
+    function desplegable(etiqueta, opciones, valor) {
+      var sel = h('select');
+      opciones.forEach(function (o) {
+        if (o.grupo) {
+          var og = h('optgroup', { label: o.grupo });
+          o.opciones.forEach(function (x) { og.appendChild(h('option', { value: x[0], text: x[1] })); });
+          sel.appendChild(og);
+        } else sel.appendChild(h('option', { value: o[0], text: o[1] }));
+      });
+      if (valor !== undefined) sel.value = valor;
+      return { el: h('label', { class: 'campo' }, h('span', { text: etiqueta }), sel), select: sel };
+    }
+    // Grupo de chips de una sola opción. opciones = [[valor, texto]]
+    function chipsUna(opciones, valor, alCambiar) {
+      var cont = h('div', { class: 'chips' });
+      var estado = { valor: valor };
+      function pintar() {
+        vaciar(cont);
+        opciones.forEach(function (o) {
+          var chip = h('button', { type: 'button', class: 'chip' + (o[0] === estado.valor ? ' si' : ''),
+            style: o[2] ? 'display:inline-flex;align-items:center;gap:6px' : null,
+            onclick: function () { estado.valor = o[0]; pintar(); if (alCambiar) alCambiar(o[0]); } });
+          if (o[2]) chip.appendChild(o[2].cloneNode(true));
+          chip.appendChild(document.createTextNode(o[1]));
+          cont.appendChild(chip);
+        });
+      }
+      pintar();
+      estado.el = cont;
+      estado.poner = function (v) { estado.valor = v; pintar(); };
+      return estado;
+    }
+    function interruptor(texto, marcado, alCambiar, sub) {
+      var input = h('input', { type: 'checkbox', checked: !!marcado });
+      if (alCambiar) input.addEventListener('change', function () { alCambiar(input.checked, input); });
+      var el = h('label', { class: 'interruptor' },
+        h('div', { style: 'flex:1' }, h('div', { style: 'font-weight:600', text: texto }), sub ? h('div', { class: 'sub', text: sub }) : null),
+        input);
+      return { el: el, input: input };
+    }
+    function casilla(marcada, alCambiar) {
+      var b = h('button', { type: 'button', class: 'casilla' + (marcada ? ' si' : ''), 'aria-label': 'Marcar' }, icono('check', 16));
+      b.addEventListener('click', function () { b.classList.toggle('si'); if (alCambiar) alCambiar(b.classList.contains('si')); });
+      return b;
+    }
+    // En una fila de chips que se desliza, deja a la vista el marcado
+    function enfocarChip(fila) {
+      setTimeout(function () {
+        var c = fila.querySelector('.chip.si');
+        if (c && c.offsetLeft + c.offsetWidth > fila.clientWidth) fila.scrollLeft = c.offsetLeft - 18;
+      }, 0);
+    }
+    function vacio(ico, titulo, texto) {
+      return h('div', { class: 'vacio' }, h('div', { class: 'ico' }, icono(ico, 28)), h('b', { text: titulo }), texto ? h('div', { text: texto }) : null);
+    }
+    function esqueleto(alturas) {
+      return alturas.map(function (a) { return h('div', { class: 'esqueleto', style: 'height:' + a + 'px;margin-bottom:10px' }); });
+    }
+    function seccion(titulo, extra) {
+      return h('div', { class: 'seccion' }, h('h2', { text: titulo }), extra ? (typeof extra === 'string' ? h('span', { class: 'extra', text: extra }) : extra) : null);
+    }
+    function fila(op) {
+      // op: { raya, t1, t2, derecha, alPulsar, icono }
+      return h(op.alPulsar ? 'button' : 'div', { type: op.alPulsar ? 'button' : null, class: 'fila', onclick: op.alPulsar || null },
+        op.raya ? h('span', { class: 'raya', style: 'background:' + op.raya }) : null,
+        op.icono || null,
+        h('div', { class: 'texto' }, h('span', { class: 't1', text: op.t1 }), op.t2 ? h('span', { class: 't2', text: op.t2 }) : null),
+        op.derecha || null,
+        op.alPulsar ? h('span', { class: 'chev' }, icono('flecha', 18)) : null);
+    }
+    function pastilla(texto, color) {
+      return h('span', { class: 'pastilla' + (color ? '' : ' gris'), style: color ? 'background:' + color : null, text: texto });
+    }
+    // Anillo de progreso (la "salud" de una pieza)
+    function anillo(pct, color, sub) {
+      var r = 40, c = 2 * Math.PI * r, lleno = Math.min(100, Math.max(0, pct || 0)) / 100;
+      var cont = h('div', { class: 'anillo' });
+      cont.innerHTML = '<svg width="92" height="92" viewBox="0 0 92 92" aria-hidden="true">' +
+        '<circle cx="46" cy="46" r="' + r + '" fill="none" stroke="#22262E" stroke-width="9"/>' +
+        '<circle cx="46" cy="46" r="' + r + '" fill="none" style="stroke:' + color + '" stroke-width="9" stroke-linecap="round" ' +
+        'stroke-dasharray="' + (c * lleno) + ' ' + c + '"/></svg>';
+      cont.appendChild(h('div', { class: 'valor' }, h('b', { text: pct == null ? '—' : pct + '%' }), h('span', { text: sub || '' })));
+      return cont;
+    }
+
+    // =====================================================================
+    //  Navegación: pestañas + pila de pantallas
+    // =====================================================================
+
+    var pilas = { garaje: [], avisos: [], informes: [], ajustes: [] };
+    var tabActual = 'garaje';
+    var contenedor = document.getElementById('pantallas');
+
+    // Crea una pantalla vacía. op: { titulo, raiz, sinBarra, derecha: [botones], pie: [botones] }
+    function nuevaPantalla(op) {
+      op = op || {};
+      var p = { op: op, version: -1, sinBarra: !!op.sinBarra };
+      p.el = h('section', { class: 'pantalla' + (op.sinBarra ? ' sin-barra' : '') });
+      if (!op.raiz) {
+        p.titulo = h('h1', { text: op.titulo || '' });
+        p.el.appendChild(h('div', { class: 'barra-sup' },
+          h('button', { type: 'button', class: 'boton-ico limpio', 'aria-label': 'Volver', onclick: atras }, icono('atras', 26)),
+          p.titulo,
+          (op.derecha && op.derecha.length) ? op.derecha : h('span', { class: 'hueco' })));
+      }
+      p.cuerpo = h('div', { class: 'cuerpo' });
+      p.el.appendChild(p.cuerpo);
+      if (op.pie) p.el.appendChild(h('div', { class: 'pie' }, op.pie));
+      return p;
+    }
+
+    function pilaActual() { return pilas[tabActual]; }
+
+    // ---------- Botón "atrás" del móvil ----------
+    // Cada pantalla que se abre y cada cambio de pestaña deja una marca en el historial del navegador (pushState):
+    // { tab, n, i } = en qué pestaña estabas y cuántas pantallas tenías abiertas. Al dar "atrás" en el móvil,
+    // el navegador nos devuelve la marca anterior (popstate) y dejamos la app tal cual estaba. Sin marcas (portada del Garaje), sale.
+    var historiaOk = !!(window.history && window.history.pushState);
+    var hist = [];                  // copia de nuestras marcas, de la más vieja a la más nueva
+    var ignorarHistoriaHasta = 0;
+
+    function marcar() {
+      if (!historiaOk) return;
+      var m = { tab: tabActual, n: pilaActual().length, i: hist.length + 1 };
+      try { window.history.pushState(m, ''); hist.push(m); } catch (e) { /* sin historial: no pasa nada */ }
+    }
+    // Quita marcas al cerrar pantallas con nuestros botones (nunca más de las que pusimos: así no se sale de la app)
+    function historiaAtras(pasos) {
+      pasos = Math.min(pasos, hist.length);
+      if (!historiaOk || pasos < 1) return;
+      hist.length -= pasos;
+      ignorarHistoriaHasta = Date.now() + 600;
+      try { window.history.go(-pasos); } catch (e) { /* nada */ }
+    }
+    function alCambiarHistoria(e) {
+      var m = e && e.state;
+      hist.length = (m && m.i) ? Math.min(m.i, hist.length) : 0;
+      if (Date.now() < ignorarHistoriaHasta) return;
+      if (capaConfig) return;   // con la pantalla de conexión delante no se mueve nada
+      var tab = (m && m.tab) || 'garaje';
+      var n = (m && m.n) || 1;
+      if (tab !== tabActual) mostrarTab(tab);
+      var s = pilaActual();
+      while (s.length > n) quitarArriba();
+    }
+    if (historiaOk) window.addEventListener('popstate', alCambiarHistoria);
+
+    function arriba() { var s = pilaActual(); return s[s.length - 1]; }
+
+    function empujar(p) {
+      var s = pilaActual();
+      var anterior = s[s.length - 1];
+      s.push(p);
+      p.el.classList.add('entra');
+      contenedor.appendChild(p.el);
+      p.el.getBoundingClientRect(); // fuerza el dibujo antes de animar
+      p.el.classList.remove('entra');
+      if (anterior) anterior.el.classList.add('detras');
+      actualizarBarra();
+      marcar();
+      mostrar(p);
+    }
+
+    // Botón "volver" de la app (y al terminar un formulario)
+    function atras() {
+      var s = pilaActual();
+      if (s.length < 2) return;
+      var ultima = hist[hist.length - 1];
+      var cuadra = ultima && ultima.tab === tabActual && ultima.n === s.length;
+      quitarArriba();
+      if (cuadra) historiaAtras(1);
+    }
+
+    function quitarArriba() {
+      var s = pilaActual();
+      if (s.length < 2) return;
+      var p = s.pop();
+      p.el.classList.add('sale');
+      setTimeout(function () { p.el.remove(); }, 300);
+      var nueva = s[s.length - 1];
+      nueva.el.classList.remove('detras');
+      actualizarBarra();
+      avisarSiNoError();
+      mostrar(nueva);
+    }
+
+    // Cambia la pantalla de arriba por otra (sin pasar por la de debajo)
+    function reemplazar(p) {
+      var s = pilaActual();
+      var vieja = s.pop();
+      vieja.el.remove();
+      s.push(p);
+      contenedor.appendChild(p.el);
+      actualizarBarra();
+      mostrar(p);
+    }
+
+    // Vuelve a la primera pantalla de la pestaña
+    function alPrincipio() {
+      var s = pilaActual();
+      var k = 0;
+      for (var j = hist.length - 1; j >= 0 && hist[j].tab === tabActual && hist[j].n > 1 && hist[j].n <= s.length; j--) k++;
+      historiaAtras(k);
+      while (s.length > 1) s.pop().el.remove();
+      s[0].el.classList.remove('detras');
+      actualizarBarra();
+      mostrar(s[0]);
+    }
+
+    function avisarSiNoError() {
+      var m = document.getElementById('mensaje');
+      if (m.className !== 'error' && m.textContent.indexOf('...') !== -1) avisar('');
+    }
+
+    // Si hubo cambios desde que se pintó, la pantalla se recarga
+    function mostrar(p) {
+      if (p.recargar && p.version !== version) {
+        p.version = version;
+        p.recargar();
+      }
+    }
+
+    function irATab(tab) {
+      if (tab === 'nueva') { empujar(pantallaNuevaBici()); return; }
+      if (tab === tabActual) { alPrincipio(); return; }
+      mostrarTab(tab);
+      marcar();
+    }
+
+    // Cambia de pestaña en pantalla (sin tocar el historial)
+    function mostrarTab(tab) {
+      pilas[tabActual].forEach(function (p) { p.el.classList.add('oculta'); });
+      tabActual = tab;
+      if (!pilas[tab].length) {
+        var raiz = { garaje: pantallaGaraje, avisos: pantallaAvisos, informes: pantallaInformes, ajustes: pantallaAjustes }[tab]();
+        pilas[tab].push(raiz);
+        contenedor.appendChild(raiz.el);
+      }
+      pilas[tab].forEach(function (p) { p.el.classList.remove('oculta'); });
+      actualizarBarra();
+      avisar('');
+      mostrar(arriba());
+    }
+
+    function actualizarBarra() {
+      document.getElementById('app').classList.toggle('sin-barra', !!arriba().sinBarra);
+      Array.prototype.forEach.call(document.querySelectorAll('.pestana'), function (b) {
+        b.classList.toggle('activa', b.getAttribute('data-tab') === tabActual);
+      });
+    }
+
+    function montarBarra() {
+      var datos = { garaje: ['garaje', 'Garaje'], avisos: ['campana', 'Avisos'], informes: ['informes', 'Informes'], nueva: ['mas', 'Nueva bici'], ajustes: ['ajustes', 'Ajustes'] };
+      Array.prototype.forEach.call(document.querySelectorAll('.pestana'), function (b) {
+        var t = b.getAttribute('data-tab');
+        var ico = icono(datos[t][0], t === 'nueva' ? 26 : 24);
+        b.appendChild(t === 'nueva' ? h('span', { class: 'gordo' }, ico) : h('span', { class: 'ico-tab' }, ico, t === 'avisos' ? h('span', { class: 'globo', id: 'globoAvisos', hidden: true }) : null));
+        b.appendChild(document.createTextNode(datos[t][1]));
+        b.addEventListener('click', function () { irATab(t); });
+      });
+    }
+
+    // =====================================================================
+    //  Intervals: sumar km solos al abrir
+    // =====================================================================
+
+    var sync = { estado: 'nada', r: null, error: '' }; // estado: nada | mirando | ok | error
+    var vigilantesSync = [];   // funciones que repintan la línea de estado
+
+    function sincronizar() {
+      if (sync.estado === 'mirando') return;
+      sync.estado = 'mirando';
+      avisarSync();
+      llamar('sincronizarIntervals', [], function (r) {
+        sync.estado = 'ok';
+        sync.r = r;
+        if (r.salidas || r.correcciones) {
+          huboCambio();
+          avisar('🔄 Intervals: ' + resumenSync(r));
+          mostrar(arriba());
+        }
+        avisarSync();
+      }, function (e) {
+        sync.estado = 'error';
+        sync.error = e.message;
+        avisarSync();
+      });
+    }
+    function avisarSync() { vigilantesSync.forEach(function (f) { f(); }); }
+    function resumenSync(r) {
+      var partes = [];
+      if (r.salidas) partes.push('+' + km(r.km) + ' (' + r.salidas + (r.salidas === 1 ? ' salida)' : ' salidas)'));
+      if (r.correcciones) partes.push(r.correcciones + (r.correcciones === 1 ? ' corrección' : ' correcciones'));
+      return partes.join(' · ');
+    }
+    // { color, texto } de la línea de estado
+    function estadoSyncTexto() {
+      if (sync.estado === 'mirando') return { color: 'var(--naranja)', texto: 'Mirando Intervals...' };
+      if (sync.estado === 'error') return { color: 'var(--rojo)', texto: 'Intervals: ' + sync.error + ' · toca para reintentar' };
+      if (sync.estado === 'ok') {
+        var r = sync.r;
+        if (r.ocupado) return { color: 'var(--amarillo)', texto: 'Intervals: ya se estaba sincronizando' };
+        if (r.sinVinculos) return { color: 'var(--gris)', texto: 'Ninguna bici vinculada con Intervals' };
+        var n = (r.sinBici || []).length;
+        if (n) return { color: 'var(--amarillo)', texto: n + (n === 1 ? ' salida' : ' salidas') + ' sin bici en Intervals · ' + r.hora };
+        return { color: 'var(--verde)', texto: 'Intervals al día · ' + r.hora + (r.salidas ? ' · +' + km(r.km) : '') };
+      }
+      return { color: 'var(--gris)', texto: 'Intervals' };
+    }
+
+    // =====================================================================
+    //  GARAJE
+    // =====================================================================
+
+    var G = null; // último garaje recibido: { bicis, bajas, avisos }
+
+    // Guarda el garaje y pone el globito de la pestaña Avisos (rojo si hay vencidas, amarillo si solo del 95 %)
+    function ponerG(d) {
+      G = d;
+      var rojos = d.avisos.filter(function (a) { return a.estado === 'vencida'; }).length;
+      var globo = document.getElementById('globoAvisos');
+      if (!globo) return;
+      globo.hidden = !d.avisos.length;
+      globo.textContent = d.avisos.length > 99 ? '99+' : d.avisos.length;
+      globo.style.background = rojos ? 'var(--rojo)' : 'var(--amarillo)';
+    }
+
+    function pantallaGaraje() {
+      var p = nuevaPantalla({ raiz: true });
+      var hoy = new Date();
+      var botonSync = h('button', { type: 'button', class: 'boton-ico', 'aria-label': 'Mirar Intervals', onclick: sincronizar }, icono('sync', 20));
+      var lineaSync = h('button', { type: 'button', class: 'estado-sync', onclick: function () {
+        if (sync.estado === 'ok' && sync.r && (sync.r.sinBici || []).length) irATab('ajustes'); else sincronizar();
+      } });
+      var zona = h('div');
+      p.cuerpo.appendChild(h('div', { class: 'titulo-grande' },
+        h('div', null, h('div', { class: 'pre', text: DIAS_SEMANA[hoy.getDay()] + ', ' + hoy.getDate() + ' de ' + MESES[hoy.getMonth()] }),
+          h('h1', { text: 'Mi garaje' })),
+        botonSync));
+      p.cuerpo.appendChild(lineaSync);
+      p.cuerpo.appendChild(zona);
+      poner(zona, esqueleto([78, 60, 160, 86, 86]));
+
+      function pintarSync() {
+        var e = estadoSyncTexto();
+        vaciar(lineaSync);
+        poner(lineaSync, [h('span', { class: 'punto', style: 'background:' + e.color }), h('span', { text: e.texto })]);
+        botonSync.classList.toggle('girando', sync.estado === 'mirando');
+      }
+      vigilantesSync.push(pintarSync);
+      pintarSync();
+
+      p.recargar = function () {
+        llamar('cargarGaraje', [], function (d) { ponerG(d); pintar(); }, function (e) {
+          vaciar(zona).appendChild(vacio('aviso', 'No he podido cargar el garaje', e.message));
+        });
+      };
+
+      function pintar() {
+        vaciar(zona);
+        var rojos = 0, amarillos = 0, kmTotal = 0;
+        G.avisos.forEach(function (a) { if (a.estado === 'vencida') rojos++; else amarillos++; });
+        G.bicis.forEach(function (b) { kmTotal += b.km; });
+
+        var colorAvisos = rojos ? 'var(--rojo)' : (amarillos ? 'var(--amarillo)' : 'var(--verde)');
+        zona.appendChild(h('div', { class: 'numeros' },
+          h('div', { class: 'numero' }, h('b', { text: G.bicis.length }), h('span', { text: G.bicis.length === 1 ? 'Bici' : 'Bicis' })),
+          h('button', { type: 'button', class: 'numero', style: 'border:0;text-align:left;color:inherit;cursor:pointer;font:inherit', onclick: function () { irATab('avisos'); } },
+            h('b', { style: 'color:' + colorAvisos, text: G.avisos.length }), h('span', { text: 'Avisos ›' })),
+          h('div', { class: 'numero' }, h('b', { text: kmTotal >= 100000 ? miles(kmTotal / 1000) + 'k' : miles(kmTotal) }), h('span', { text: 'Km en total' }))));
+
+        // Bicis
+        zona.appendChild(seccion('Mis bicis'));
+        if (!G.bicis.length) {
+          zona.appendChild(vacio('bici', 'Tu garaje está vacío', 'Pulsa el botón naranja + para dar de alta tu primera bici.'));
+        }
+        G.bicis.forEach(function (b) { zona.appendChild(tarjetaBici(b)); });
+        if (G.bajas.length) {
+          zona.appendChild(h('button', { type: 'button', class: 'estado-sync', style: 'margin-top:6px', onclick: function () { irATab('ajustes'); } },
+            icono('caja', 16), h('span', { text: G.bajas.length + (G.bajas.length === 1 ? ' bici dada de baja' : ' bicis dadas de baja') + ' · en Ajustes' })));
+        }
+      }
+      return p;
+    }
+
+    function tarjetaBici(b) {
+      var marca = b.rojos ? h('span', { class: 'contador', style: 'background:var(--rojo)', text: b.rojos + b.naranjas })
+        : (b.naranjas ? h('span', { class: 'contador', style: 'background:var(--amarillo)', text: b.naranjas })
+          : h('span', { class: 'contador', style: 'background:rgba(61,214,140,.15);color:var(--verde)' }, icono('check', 16)));
+      return h('button', { type: 'button', class: 'bici-card', onclick: function () { empujar(pantallaBici(b)); } },
+        h('span', { class: 'bici-ico' }, iconoBici(b.tipo, 34)),
+        h('div', { style: 'flex:1;min-width:0' }, h('div', { class: 'nombre', text: b.nombre }),
+          h('div', { class: 'sub', text: mayuscula(b.tipo) + ' · ' + km(b.km) })),
+        marca);
+    }
+
+    // =====================================================================
+    //  AVISOS (pestaña propia)
+    // =====================================================================
+
+    function pantallaAvisos() {
+      var p = nuevaPantalla({ raiz: true });
+      var zona = h('div');
+      poner(p.cuerpo, [h('div', { class: 'titulo-grande' }, h('div', null, h('div', { class: 'pre', text: 'Lo que pide atención' }), h('h1', { text: 'Avisos' }))), zona]);
+      poner(zona, esqueleto([78, 160, 160]));
+
+      p.recargar = function () {
+        llamar('cargarAvisos', [], function (d) { pintar(d.avisos); }, function (e) {
+          vaciar(zona).appendChild(vacio('aviso', 'No he podido cargar los avisos', e.message));
+        });
+        llamar('cargarGaraje', [], ponerG);
+      };
+
+      function pintar(avisos) {
+        vaciar(zona);
+        var grupos = {
+          vencida: avisos.filter(function (a) { return a.estado === 'vencida'; }),
+          aviso: avisos.filter(function (a) { return a.estado === 'aviso'; }),
+          proximo: avisos.filter(function (a) { return a.estado === 'proximo'; })
+        };
+        zona.appendChild(h('div', { class: 'numeros', style: 'margin-top:4px' },
+          h('div', { class: 'numero' }, h('b', { style: 'color:var(--rojo)', text: grupos.vencida.length }), h('span', { text: 'Ya toca' })),
+          h('div', { class: 'numero' }, h('b', { style: 'color:var(--amarillo)', text: grupos.aviso.length }), h('span', { text: 'Al 95 %' })),
+          h('div', { class: 'numero' }, h('b', { style: 'color:var(--azul)', text: grupos.proximo.length }), h('span', { text: 'Próximo' }))));
+
+        if (!grupos.vencida.length && !grupos.aviso.length) {
+          zona.appendChild(h('div', { class: 'tarjeta todo-bien', style: 'margin-top:16px;padding:22px 16px' }, h('span', { class: 'ok' }, icono('check', 22)),
+            h('div', null, h('b', { style: 'font-size:18px', text: 'Todo al día' }), h('div', { class: 'sub', text: 'Ninguna pieza pide atención ahora mismo.' }))));
+        }
+        bloque('Ya toca', 'Del 100 % en adelante', grupos.vencida);
+        bloque('Ve preparándolo', 'Desde el 95 %', grupos.aviso);
+        bloque('Lo próximo', 'Entre el 80 y el 95 %: para ir comprando con calma', grupos.proximo);
+      }
+
+      // Una sección (Ya toca, Ve preparándolo, Lo próximo) con sus avisos agrupados por bici
+      function bloque(titulo, sub, lista) {
+        if (!lista.length) return;
+        zona.appendChild(seccion(titulo, String(lista.length)));
+        zona.appendChild(h('p', { class: 'sub', style: 'margin:-6px 2px 10px', text: sub }));
+        var orden = [], porBici = {};
+        lista.forEach(function (a) {
+          if (!porBici[a.idBici]) { porBici[a.idBici] = []; orden.push(a.idBici); }
+          porBici[a.idBici].push(a);
+        });
+        orden.forEach(function (idBici) {
+          var caja = h('div', { class: 'lista' });
+          porBici[idBici].forEach(function (a) {
+            var color = colorEstado(a.estado, false);
+            caja.appendChild(fila({ raya: color, t1: a.pieza + ' · ' + a.tarea, t2: textoFalta(a),
+              derecha: pastilla(a.pct + '%', color),
+              alPulsar: function () {
+                var b = ((G && G.bicis) || []).filter(function (x) { return x.id === a.idBici; })[0];
+                if (b) empujar(pantallaBici(b, { id: a.idPieza, grupo: a.grupo, nombre: a.pieza }));
+              } }));
+          });
+          zona.appendChild(h('div', { class: 'grupo' }, h('div', { class: 'grupo-cab' }, porBici[idBici][0].bici,
+            h('span', { class: 'cuenta', text: '· ' + porBici[idBici].length })), caja));
+        });
+      }
+      return p;
+    }
+
+    // =====================================================================
+    //  UNA BICI
+    // =====================================================================
+
+    // irA = { grupo, nombre }: al cargar, abre esa pieza directamente
+    function pantallaBici(b, irA) {
+      var editar = h('button', { type: 'button', class: 'boton-ico limpio', 'aria-label': 'Editar bici',
+        onclick: function () { empujar(pantallaEditarBici(b)); } }, icono('lapiz', 22));
+      var p = nuevaPantalla({ titulo: b.nombre, derecha: [editar] });
+      var piezas = null;
+      var mants = null;
+      var vista = 'piezas';
+      var gruposAbiertos = {};   // de entrada, todos los grupos plegados
+      var heroe = h('div');
+      var segmento = h('div', { class: 'segmento', style: 'margin-bottom:6px' });
+      var zona = h('div');
+      poner(p.cuerpo, [heroe, segmento, zona]);
+      poner(zona, esqueleto([90, 220, 220]));
+
+      p.recargar = function () {
+        var faltan = 2;
+        function listo() { if (--faltan === 0) pintarTodo(); }
+        // Los datos de la bici (km, nombre...) pueden haber cambiado: se piden otra vez
+        llamar('cargarGaraje', [], function (d) {
+          ponerG(d);
+          var nueva = d.bicis.filter(function (x) { return x.id === b.id; })[0];
+          if (!nueva) { if (arriba() === p) atras(); return; }
+          Object.assign(b, nueva);
+          listo();
+        });
+        llamar('listarPiezas', [b.id], function (lista) { piezas = lista; listo(); }, function (e) {
+          vaciar(zona).appendChild(vacio('aviso', 'No he podido cargar las piezas', e.message));
+        });
+        if (vista === 'mant') cargarMants();
+      };
+
+      function cargarMants() {
+        llamar('listarMantenimientos', [b.id], function (lista) { mants = lista; if (vista === 'mant') pintarZona(); });
+      }
+
+      function pintarTodo() {
+        p.titulo.textContent = b.nombre;
+        var c = contarAvisos(piezas);
+        vaciar(heroe).appendChild(h('div', { class: 'heroe' },
+          h('span', { style: 'position:absolute;right:14px;top:12px;color:var(--naranja);opacity:.9' }, iconoBici(b.tipo, 92)),
+          h('span', { class: 'tipo', text: b.tipo }),
+          h('div', { class: 'grande' }, miles(b.km), h('small', { text: 'km' })),
+          h('div', { class: 'mini' },
+            h('div', null, h('b', { text: piezas.length }), 'piezas'),
+            h('div', null, h('b', { style: c.rojos ? 'color:var(--rojo)' : (c.amarillos ? 'color:var(--amarillo)' : 'color:var(--verde)'),
+              text: c.rojos + c.amarillos }), 'avisos'),
+            b.fechaCompra ? h('div', null, h('b', { text: fechaBonita(b.fechaCompra).replace(/^\d+ /, '') }), 'comprada') : null)));
+        vaciar(segmento);
+        [['piezas', 'Piezas'], ['mant', 'Mantenimientos']].forEach(function (s) {
+          segmento.appendChild(h('button', { type: 'button', class: vista === s[0] ? 'si' : '', text: s[1], onclick: function () {
+            vista = s[0];
+            pintarTodo();
+            if (vista === 'mant' && !mants) cargarMants();
+          } }));
+        });
+        pintarZona();
+        if (irA) {
+          var objetivo = piezas.filter(function (x) { return irA.id ? x.id === irA.id : (x.grupo === irA.grupo && x.nombre === irA.nombre); })[0];
+          irA = null;
+          if (objetivo) empujar(pantallaPieza(b, objetivo));
+        }
+      }
+
+      function pintarZona() {
+        vaciar(zona);
+        if (vista === 'mant') { pintarMants(); return; }
+
+        // Lo que pide atención
+        var avisos = [];
+        piezas.forEach(function (pz) {
+          if (pz.sinAviso) return;
+          pz.tareas.forEach(function (t) { if (t.estado === 'vencida' || t.estado === 'aviso') avisos.push({ p: pz, t: t }); });
+        });
+        avisos.sort(function (x, y) { return y.t.pct - x.t.pct; });
+        if (avisos.length) {
+          zona.appendChild(seccion('Necesita atención', String(avisos.length)));
+          var la = h('div', { class: 'lista' });
+          avisos.forEach(function (a) {
+            var color = colorEstado(a.t.estado, false);
+            la.appendChild(fila({ raya: color, t1: a.p.nombre + ' · ' + a.t.nombre, t2: textoFalta(a.t),
+              derecha: pastilla(a.t.pct + '%', color), alPulsar: function () { empujar(pantallaPieza(b, a.p)); } }));
+          });
+          zona.appendChild(la);
+        }
+
+        // Piezas por grupos
+        zona.appendChild(seccion('Piezas', piezas.length + ' montadas'));
+        if (!piezas.length) zona.appendChild(vacio('herramienta', 'Sin piezas', 'Añade la primera con el botón de abajo.'));
+        var orden = [], porGrupo = {};
+        piezas.forEach(function (pz) {
+          if (!porGrupo[pz.grupo]) { porGrupo[pz.grupo] = []; orden.push(pz.grupo); }
+          porGrupo[pz.grupo].push(pz);
+        });
+        orden.forEach(function (g) {
+          var lista = h('div', { class: 'lista grupo' });
+          var piezasG = h('div', { hidden: !gruposAbiertos[g] });
+          // Peor estado del grupo: el puntito de la cabecera
+          var peorG = null;
+          porGrupo[g].forEach(function (pz) {
+            if (pz.sinAviso) return;
+            var t = peorTarea(pz);
+            if (t && (!peorG || t.pct > peorG.pct)) peorG = t;
+          });
+          var cab = h('button', { type: 'button', class: 'grupo-boton' + (gruposAbiertos[g] ? ' abierto' : '') },
+            h('span', { class: 'punto', style: 'width:10px;height:10px;border-radius:5px;background:' + (peorG ? colorEstado(peorG.estado, false) : 'var(--borde)') }),
+            g, h('span', { class: 'cuenta', text: '· ' + porGrupo[g].length }),
+            (peorG && (peorG.estado === 'vencida' || peorG.estado === 'aviso')) ? pastilla(peorG.pct + '%', colorEstado(peorG.estado, false)) : null,
+            h('span', { class: 'chev' }, icono('flecha', 18)));
+          cab.addEventListener('click', function () {
+            gruposAbiertos[g] = !gruposAbiertos[g];
+            piezasG.hidden = !gruposAbiertos[g];
+            cab.classList.toggle('abierto', gruposAbiertos[g]);
+          });
+          lista.appendChild(cab);
+          lista.appendChild(piezasG);
+          porGrupo[g].forEach(function (pz) {
+            var peor = peorTarea(pz);
+            var derecha;
+            if (pz.sinAviso) derecha = h('span', { class: 'pastilla gris', style: 'display:inline-flex' }, icono('silencio', 14));
+            else if (peor) derecha = pastilla(peor.pct + '%', colorEstado(peor.estado, false));
+            piezasG.appendChild(fila({
+              raya: peor ? colorEstado(peor.estado, pz.sinAviso) : 'var(--borde)',
+              t1: pz.nombre, t2: km(pz.km) + (pz.tareas.length ? ' · ' + pz.tareas.length + (pz.tareas.length === 1 ? ' tarea' : ' tareas') : ''),
+              derecha: derecha, alPulsar: function () { empujar(pantallaPieza(b, pz)); }
+            }));
+          });
+          zona.appendChild(lista);
+        });
+        zona.appendChild(h('button', { type: 'button', class: 'boton ancho', style: 'margin-top:8px',
+          onclick: function () { empujar(pantallaAnadirPieza(b, orden)); } }, icono('mas', 20), 'Añadir pieza'));
+      }
+
+      function pintarMants() {
+        zona.appendChild(h('button', { type: 'button', class: 'boton principal ancho', style: 'margin-top:10px',
+          onclick: function () { empujar(pantallaMant(b, piezas, null)); } }, icono('mas', 20), 'Apuntar mantenimiento'));
+        if (!mants) { poner(zona, esqueleto([120, 90, 90])); return; }
+        if (!mants.length) { zona.appendChild(vacio('llave', 'Nada apuntado todavía', 'Aquí saldrán lavados, engrases, cambios de pieza...')); return; }
+        var tp = 0, tm = 0;
+        mants.forEach(function (r) { tp += r.costePiezas; tm += r.costeManoObra; });
+        zona.appendChild(seccion('Historial', mants.length + (mants.length === 1 ? ' trabajo' : ' trabajos')));
+        zona.appendChild(h('div', { class: 'tarjeta', style: 'margin-bottom:12px' },
+          h('div', { class: 'sub', text: 'Gastado en esta bici' }),
+          h('div', { style: 'font-size:28px;font-weight:800;margin:4px 0 10px', text: eur(tp + tm) }),
+          repartoBarra(tp, tm)));
+        var lista = h('div', { class: 'lista' });
+        mants.forEach(function (r) {
+          lista.appendChild(fila({ t1: r.queSeHizo, t2: fechaDMY(r.fecha) + ' · ' + (r.pieza || 'Bici entera') + (r.donde ? ' · ' + r.donde : ''),
+            derecha: h('b', { style: 'white-space:nowrap', text: eurCorto(r.costePiezas + r.costeManoObra) }),
+            alPulsar: function () { empujar(pantallaMant(b, piezas, r)); } }));
+        });
+        zona.appendChild(lista);
+      }
+      return p;
+    }
+
+    // Barra piezas / mano de obra con leyenda
+    function repartoBarra(piezas, mano) {
+      var total = piezas + mano;
+      var pp = total ? piezas / total * 100 : 0;
+      return h('div', null,
+        h('div', { class: 'reparto' }, h('i', { style: 'width:' + pp + '%;background:var(--naranja)' }), h('i', { style: 'width:' + (100 - pp) + '%;background:#7C8391' })),
+        h('div', { class: 'leyenda' },
+          h('span', null, h('i', { class: 'punto', style: 'background:var(--naranja)' }), 'Piezas ' + eur(piezas)),
+          h('span', null, h('i', { class: 'punto', style: 'background:#7C8391' }), 'Mano de obra ' + eur(mano))));
+    }
+
+    // =====================================================================
+    //  UNA PIEZA
+    // =====================================================================
+
+    function pantallaPieza(b, pz) {
+      var p = nuevaPantalla({ titulo: pz.nombre });
+      p.recargar = function () {
+        llamar('listarPiezas', [b.id], function (lista) {
+          // Tras "Sustituir" la pieza tiene id nuevo: se busca por grupo y nombre
+          var nueva = lista.filter(function (x) { return x.id === pz.id; })[0] ||
+            lista.filter(function (x) { return x.grupo === pz.grupo && x.nombre === pz.nombre; })[0];
+          if (!nueva) { if (arriba() === p) atras(); return; }
+          pz = nueva;
+          pintar();
+        });
+      };
+      if (pz.tareas) setTimeout(pintar, 0);
+
+      function pintar() {
+        p.titulo.textContent = pz.nombre;
+        vaciar(p.cuerpo);
+        var peor = peorTarea(pz);
+        var color = peor ? colorEstado(peor.estado, pz.sinAviso) : 'var(--gris)';
+        p.cuerpo.appendChild(h('div', { class: 'heroe' },
+          h('div', { style: 'display:flex;gap:16px;align-items:center;position:relative' },
+            anillo(peor ? peor.pct : null, color, peor ? 'gastado' : 'sin reloj'),
+            h('div', { style: 'min-width:0' },
+              h('div', { class: 'sub', text: pz.grupo + ' · ' + b.nombre }),
+              h('div', { style: 'font-size:22px;font-weight:800;margin:2px 0 4px', text: pz.nombre }),
+              h('div', { style: 'font-size:15px;font-weight:700', text: km(pz.km) }),
+              h('div', { class: 'sub', text: 'Montada el ' + fechaBonita(pz.fechaMontaje) }))),
+          h('div', { class: 'etiquetas', style: 'position:relative' },
+            h('span', { class: 'etiqueta', style: pz.original ? 'color:var(--verde)' : null, text: pz.original ? '✓ Vida conocida' : '❔ Vida desconocida' }),
+            pz.sinAviso ? h('span', { class: 'etiqueta', text: '🔕 Sin aviso' }) : null)));
+
+        // Tareas
+        p.cuerpo.appendChild(seccion('Tareas', h('button', { type: 'button', class: 'chip', text: '+ Añadir',
+          onclick: function () { empujar(pantallaTarea(b, pz, null)); } })));
+        if (!pz.tareas.length) {
+          p.cuerpo.appendChild(h('div', { class: 'tarjeta sub', text: 'Sin tareas: se cambia cuando falle o se gaste, y la app apunta cuánto duró.' }));
+        }
+        pz.tareas.forEach(function (t) {
+          var c = colorEstado(t.estado, pz.sinAviso);
+          var tarjeta = h('div', { class: 'tarea' },
+            h('div', { class: 'cab' },
+              h('span', { class: 'ico', style: t.tipo === 'cambio' ? 'color:var(--naranja)' : null }, icono(t.tipo === 'cambio' ? 'cambiar' : 'lupa', 20)),
+              h('div', { style: 'flex:1;min-width:0' }, h('div', { style: 'font-weight:700', text: t.nombre }),
+                h('div', { class: 'sub', text: (t.tipo === 'cambio' ? 'Cambio · ' : 'Revisión · ') + textoReloj(t) })),
+              h('button', { type: 'button', class: 'boton-ico limpio', 'aria-label': 'Editar tarea',
+                onclick: function () { empujar(pantallaTarea(b, pz, t)); } }, icono('lapiz', 20))),
+            t.pct != null ? h('div', { class: 'medidor' }, h('i', { style: 'width:' + Math.min(100, t.pct) + '%;background:' + c })) : null,
+            h('div', { class: 'pie-t', style: t.pct == null ? 'margin-top:12px' : null },
+              h('span', { class: 'sub' }, t.pct != null ? h('b', { style: 'color:' + c, text: t.pct + '% ' }) : null, textoFalta(t) || ''),
+              h('button', { type: 'button', class: 'boton principal chico', onclick: function () {
+                if (t.tipo === 'cambio') empujar(pantallaSustituir(b, pz, 'Cambiar ' + pz.nombre));
+                else empujar(pantallaHecho(b, pz, t));
+              } }, icono('check', 18), 'Hecho')));
+          p.cuerpo.appendChild(tarjeta);
+        });
+
+        // Avisos sí/no
+        var sw = interruptor('Avisos de esta pieza', !pz.sinAviso, function (activo, input) {
+          input.disabled = true;
+          llamar('cambiarSinAviso', [pz.id, !activo], function (valor) {
+            huboCambio();
+            avisar(valor ? 'Pieza sin aviso 🔕' : 'Avisos activados ✅');
+            mostrar(p);
+          }, function (e) { input.checked = !activo; input.disabled = false; avisar('Error: ' + e.message); });
+        }, 'Apágalo en piezas que no quieres vigilar (por ejemplo, en el rodillo).');
+        p.cuerpo.appendChild(h('div', { class: 'tarjeta', style: 'margin-top:16px' }, sw.el));
+
+        // Acciones
+        p.cuerpo.appendChild(seccion('Acciones'));
+        function accion(ico, texto, f) {
+          return h('button', { type: 'button', class: 'accion', onclick: f }, icono(ico, 24), texto);
+        }
+        p.cuerpo.appendChild(h('div', { class: 'acciones' },
+          accion('cambiar', 'Sustituir por una nueva', function () { empujar(pantallaSustituir(b, pz, 'Sustituir ' + pz.nombre)); }),
+          accion('historial', 'Historial', function () { empujar(pantallaHistorialPieza(pz)); }),
+          accion('lapiz', 'Editar pieza', function () { empujar(pantallaEditarPieza(pz)); }),
+          accion('caja', 'Retirar sin poner otra', function () { empujar(pantallaRetirar(pz)); })));
+
+        var borrar = botonSeguro('Borrar pieza', '¿Seguro? Pulsa otra vez para borrar', 'peligro', function (boton) {
+          guardar(boton, 'borrarPieza', [pz.id], 'Pieza borrada ✅', function () { atras(); });
+        });
+        p.cuerpo.appendChild(h('div', { class: 'zona-peligro' }, borrar,
+          h('p', { class: 'sub', text: 'Borrar es para piezas puestas por error. Si la pieza existió, mejor Retirar: así guarda su historial.' })));
+      }
+      return p;
+    }
+
+    function pantallaHistorialPieza(pz) {
+      var p = nuevaPantalla({ titulo: 'Historial' });
+      poner(p.cuerpo, esqueleto([80, 140, 140]));
+      p.recargar = function () {
+        llamar('historialPieza', [pz.id], function (hst) {
+          vaciar(p.cuerpo);
+          p.cuerpo.appendChild(h('div', { class: 'tarjeta' }, h('div', { style: 'font-weight:700;font-size:17px', text: pz.nombre }),
+            h('div', { class: 'sub', text: 'Montada el ' + fechaDMY(hst.montaje) + ' · ' + km(hst.km) })));
+          p.cuerpo.appendChild(seccion('Mantenimientos', String(hst.mantenimientos.length)));
+          if (!hst.mantenimientos.length) p.cuerpo.appendChild(h('div', { class: 'tarjeta sub', text: 'Ninguno todavía.' }));
+          else {
+            var l1 = h('div', { class: 'lista' });
+            hst.mantenimientos.forEach(function (m) { l1.appendChild(fila({ t1: m.queSeHizo, t2: fechaDMY(m.fecha), derecha: h('b', { text: eurCorto(m.coste) }) })); });
+            p.cuerpo.appendChild(l1);
+          }
+          p.cuerpo.appendChild(seccion('Piezas anteriores en este hueco', String(hst.anteriores.length)));
+          if (!hst.anteriores.length) p.cuerpo.appendChild(h('div', { class: 'tarjeta sub', text: 'Ninguna: es la primera.' }));
+          else {
+            var l2 = h('div', { class: 'lista' });
+            hst.anteriores.forEach(function (a) {
+              l2.appendChild(fila({ t1: km(a.km) + ' · ' + (a.dias == null ? '? días' : textoDias(a.dias)),
+                t2: fechaDMY(a.montaje) + ' → ' + fechaDMY(a.retirada), derecha: h('b', { text: eurCorto(a.coste) }) }));
+            });
+            p.cuerpo.appendChild(l2);
+          }
+        }, function (e) { vaciar(p.cuerpo).appendChild(vacio('aviso', 'No he podido cargar el historial', e.message)); });
+      };
+      return p;
+    }
+
+    // =====================================================================
+    //  FORMULARIOS (cada uno es una pantalla con su botón abajo)
+    // =====================================================================
+
+    function pantallaForm(titulo, textoBoton, alGuardar) {
+      var boton = h('button', { type: 'button', class: 'boton principal', text: textoBoton });
+      var p = nuevaPantalla({ titulo: titulo, sinBarra: true, pie: [boton] });
+      boton.addEventListener('click', function () { alGuardar(boton); });
+      p.boton = boton;
+      return p;
+    }
+
+    function pantallaHecho(b, pz, t) {
+      var c = {};
+      var p = pantallaForm(t.nombre, 'Guardar y poner a cero', function (boton) {
+        guardar(boton, 'tareaHecha', [{ idTarea: t.id, fecha: c.fecha.input.value, queSeHizo: c.que.input.value, km: c.km.input.value,
+          costePiezas: Number(c.cp.input.value) || 0, costeManoObra: Number(c.cm.input.value) || 0,
+          donde: c.donde.input.value, notas: c.notas.input.value }], '✅ ' + t.nombre + ': a cero y apuntado', atras);
+      });
+      c.fecha = campo('Fecha', { type: 'date', value: hoyTexto(), max: hoyTexto() });
+      c.que = campo('Qué se hizo', { type: 'text', value: t.nombre });
+      c.km = campo('Km de la pieza cuando lo hiciste', { type: 'number', value: String(pz.km) }, 'Ahora tiene ' + km(pz.km) + '.');
+      c.cp = campo('Piezas (€)', { type: 'number', value: '0' });
+      c.cm = campo('Mano de obra (€)', { type: 'number', value: '0' });
+      c.donde = campo('Dónde', { type: 'text', placeholder: 'Casa, taller...' });
+      c.notas = campo('Notas', { type: 'text' });
+      poner(p.cuerpo, [h('p', { class: 'sub', text: pz.nombre + ' · ' + b.nombre }), c.fecha.el, c.que.el, c.km.el,
+        h('div', { class: 'dos' }, c.cp.el, c.cm.el), c.donde.el, c.notas.el,
+        h('button', { type: 'button', class: 'boton ancho', onclick: function () { reemplazar(pantallaSustituir(b, pz, 'Cambiar ' + pz.nombre)); } },
+          icono('cambiar', 20), 'Al final la he cambiado')]);
+      return p;
+    }
+
+    function pantallaSustituir(b, pz, titulo) {
+      var c = {};
+      var p = pantallaForm(titulo, 'Guardar sustitución', function (boton) {
+        guardar(boton, 'sustituirPieza', [{ idPieza: pz.id, fecha: c.fecha.input.value, costePiezas: Number(c.cp.input.value) || 0,
+          costeManoObra: Number(c.cm.input.value) || 0, kmNueva: Number(c.km.input.value) || 0,
+          donde: c.donde.input.value, notas: c.notas.input.value }], 'Pieza sustituida ✅ (relojes a cero)', atras);
+      });
+      c.fecha = campo('Fecha', { type: 'date', value: hoyTexto(), max: hoyTexto() });
+      c.cp = campo('Pieza nueva (€)', { type: 'number', value: '0' });
+      c.cm = campo('Mano de obra (€)', { type: 'number', value: '0' });
+      c.km = campo('Km que ya trae la nueva', { type: 'number', value: '0' });
+      c.donde = campo('Dónde', { type: 'text', placeholder: 'Casa, taller...' });
+      c.notas = campo('Notas', { type: 'text', placeholder: 'Marca, modelo...' });
+      poner(p.cuerpo, [h('div', { class: 'tarjeta sub', style: 'margin-bottom:16px',
+        text: 'La vieja (' + km(pz.km) + ') pasa al historial y la nueva empieza con todos sus relojes a cero.' }),
+        c.fecha.el, h('div', { class: 'dos' }, c.cp.el, c.cm.el), c.km.el, c.donde.el, c.notas.el]);
+      return p;
+    }
+
+    function pantallaTarea(b, pz, t) {
+      var c = {};
+      var tipo = chipsUna([['revisión', '🔍 Revisión'], ['cambio', '🔧 Cambio']], t ? t.tipo : 'revisión');
+      var p = pantallaForm(t ? 'Editar tarea' : 'Nueva tarea', 'Guardar tarea', function (boton) {
+        guardar(boton, 'guardarTarea', [{ idTarea: t ? t.id : '', idPieza: pz.id, nombre: c.nombre.input.value, tipo: tipo.valor,
+          cadaKm: c.ckm.input.value, cadaDias: c.cdias.input.value, ultimaFecha: c.ufecha.input.value, ultimaKm: c.ukm.input.value }],
+          'Tarea guardada ✅', atras);
+      });
+      c.nombre = campo('Nombre', { type: 'text', value: t ? t.nombre : '', placeholder: 'Ej.: Limpiar y engrasar' });
+      c.ckm = campo('Cada (km)', { type: 'number', value: (t && t.cadaKm != null) ? String(t.cadaKm) : '', step: '1', placeholder: '—' });
+      c.cdias = campo('Cada (días)', { type: 'number', value: (t && t.cadaDias != null) ? String(t.cadaDias) : '', step: '1', placeholder: '—' });
+      c.ufecha = campo('Última vez: fecha', { type: 'date', value: (t && t.ultimaFecha) ? t.ultimaFecha : hoyTexto(), max: hoyTexto() });
+      c.ukm = campo('Última vez: km de la pieza', { type: 'number', value: t ? String(t.ultimaKm) : String(pz.km) }, 'Ahora tiene ' + km(pz.km) + '.');
+      poner(p.cuerpo, [h('p', { class: 'sub', text: pz.nombre + ' · ' + b.nombre }), c.nombre.el,
+        h('div', { class: 'pregunta' }, h('span', { text: 'Tipo' }), tipo.el),
+        h('div', { class: 'dos' }, c.ckm.el, c.cdias.el),
+        h('p', { class: 'sub', style: 'margin-top:-6px', text: 'Rellena uno o los dos: salta lo primero que llegue. Vacío = sin ese reloj.' }),
+        c.ufecha.el, c.ukm.el]);
+      if (t) {
+        p.cuerpo.appendChild(h('div', { class: 'zona-peligro' }, botonSeguro('Borrar tarea', '¿Seguro? Pulsa otra vez para borrar', 'peligro', function (boton) {
+          guardar(boton, 'borrarTarea', [t.id], 'Tarea borrada ✅', atras);
+        })));
+      }
+      return p;
+    }
+
+    function pantallaEditarPieza(pz) {
+      var c = {};
+      var original = pz.original;
+      var p = pantallaForm('Editar pieza', 'Guardar cambios', function (boton) {
+        guardar(boton, 'editarPieza', [{ idPieza: pz.id, grupo: c.grupo.input.value, nombre: c.nombre.input.value, km: c.km.input.value,
+          fechaMontaje: c.fecha.input.value, original: original }], 'Pieza actualizada ✅', atras);
+      });
+      c.grupo = campo('Grupo', { type: 'text', value: pz.grupo });
+      c.nombre = campo('Nombre', { type: 'text', value: pz.nombre });
+      c.km = campo('Km de la pieza', { type: 'number', value: String(pz.km) });
+      c.fecha = campo('Fecha de montaje', { type: 'date', value: pz.fechaMontaje || '', max: hoyTexto() });
+      var sw = interruptor('Cuenta para la media de duración', original, function (v) { original = v; },
+        'Original de la bici o montada con la app (se conoce toda su vida).');
+      poner(p.cuerpo, [c.grupo.el, c.nombre.el, h('div', { class: 'dos' }, c.km.el, c.fecha.el), h('div', { class: 'tarjeta' }, sw.el)]);
+      return p;
+    }
+
+    function pantallaRetirar(pz) {
+      var fecha = campo('Fecha de retirada', { type: 'date', value: hoyTexto(), max: hoyTexto() });
+      var p = pantallaForm('Retirar pieza', 'Sí, retirar', function (boton) {
+        guardar(boton, 'retirarPieza', [{ idPieza: pz.id, fecha: fecha.input.value }], 'Pieza retirada ✅', atras);
+      });
+      poner(p.cuerpo, [h('div', { class: 'tarjeta', style: 'margin-bottom:16px' }, h('b', { text: pz.nombre }),
+        h('p', { class: 'sub', text: 'Se retira sin poner otra: pasa al historial con sus ' + km(pz.km) + ' y se borran sus tareas.' })), fecha.el]);
+      return p;
+    }
+
+    var GRUPOS_BASE = ['Transmisión', 'Mandos y frenos', 'Rueda delantera', 'Rueda trasera', 'Dirección y manillar', 'Contacto',
+      'Electrónica', 'Asistencia eléctrica', 'Cuadro'];
+
+    function pantallaAnadirPieza(b, gruposBici) {
+      var grupos = GRUPOS_BASE.slice();
+      gruposBici.forEach(function (g) { if (grupos.indexOf(g) === -1) grupos.push(g); });
+      var grupo = chipsUna(grupos.map(function (g) { return [g, g]; }), grupos[0]);
+      var nombre = campo('Nombre de la pieza', { type: 'text', placeholder: 'Ej.: Cubierta delantera' });
+      var otro = campo('...o un grupo nuevo', { type: 'text', placeholder: 'Opcional' });
+      var p = pantallaForm('Añadir pieza', 'Añadir pieza', function (boton) {
+        guardar(boton, 'anadirPieza', [{ idBici: b.id, grupo: otro.input.value.trim() || grupo.valor, nombre: nombre.input.value }],
+          'Pieza añadida ✅', atras);
+      });
+      poner(p.cuerpo, [h('p', { class: 'sub', text: b.nombre }), nombre.el, h('div', { class: 'pregunta' }, h('span', { text: 'Grupo' }), grupo.el),
+        otro.el, h('p', { class: 'sub', text: 'Nace con los km de la bici y sin tareas. Si conoces su historia, ajústala luego en "Editar pieza".' })]);
+      return p;
+    }
+
+    // Mantenimiento nuevo (r = null) o editar uno (r)
+    function pantallaMant(b, piezas, r) {
+      var c = {};
+      var p = pantallaForm(r ? 'Editar apunte' : 'Apuntar mantenimiento', r ? 'Guardar cambios' : 'Guardar', function (boton) {
+        var datos = { fecha: c.fecha.input.value, queSeHizo: c.que.input.value, costePiezas: Number(c.cp.input.value) || 0,
+          costeManoObra: Number(c.cm.input.value) || 0, donde: c.donde.input.value, notas: c.notas.input.value };
+        if (r) { datos.idMant = r.id; guardar(boton, 'editarMantenimiento', [datos], 'Apunte actualizado ✅', atras); }
+        else {
+          datos.idBici = b.id;
+          datos.idPieza = c.pieza.select.value;
+          guardar(boton, 'registrarMantenimiento', [datos], 'Mantenimiento guardado ✅', atras);
+        }
+      });
+      if (!r) {
+        var opciones = [['', 'Bici entera']], porGrupo = {}, orden = [];
+        (piezas || []).forEach(function (pz) {
+          if (!porGrupo[pz.grupo]) { porGrupo[pz.grupo] = []; orden.push(pz.grupo); }
+          porGrupo[pz.grupo].push([pz.id, pz.nombre]);
+        });
+        orden.forEach(function (g) { opciones.push({ grupo: g, opciones: porGrupo[g] }); });
+        c.pieza = desplegable('¿A qué va?', opciones, '');
+      }
+      c.fecha = campo('Fecha', { type: 'date', value: r ? r.fechaISO : hoyTexto() });
+      c.que = campo('Qué se hizo', { type: 'text', value: r ? r.queSeHizo : '', placeholder: 'Lavado, engrase, revisión...' });
+      c.cp = campo('Piezas (€)', { type: 'number', value: r ? String(r.costePiezas) : '0' });
+      c.cm = campo('Mano de obra (€)', { type: 'number', value: r ? String(r.costeManoObra) : '0' });
+      c.donde = campo('Dónde', { type: 'text', value: r ? (r.donde || '') : '', placeholder: 'Casa, taller...' });
+      c.notas = campo('Notas', { type: 'text', value: r ? (r.notas || '') : '' });
+      poner(p.cuerpo, [h('p', { class: 'sub', text: b.nombre + (r ? ' · ' + (r.pieza || 'Bici entera') : '') }),
+        c.pieza ? c.pieza.el : null, c.fecha.el, c.que.el, h('div', { class: 'dos' }, c.cp.el, c.cm.el), c.donde.el, c.notas.el]);
+      if (r) {
+        var esSust = String(r.queSeHizo).indexOf('Sustitución') === 0;
+        p.cuerpo.appendChild(h('div', { class: 'zona-peligro' }, botonSeguro(esSust ? 'Borrar apunte' : 'Borrar mantenimiento',
+          '¿Seguro? Pulsa otra vez para borrar', 'peligro', function (boton) {
+            guardar(boton, 'borrarMantenimiento', [r.id], 'Borrado ✅', atras);
+          }), esSust ? h('p', { class: 'sub', text: 'Borrar este apunte no deshace el cambio de pieza.' }) : null));
+      }
+      return p;
+    }
+
+    // ---------- Editar bici (+ Intervals + zona peligrosa) ----------
+    function pantallaEditarBici(b) {
+      var c = {};
+      var p = pantallaForm('Editar bici', 'Guardar bici', function (boton) {
+        guardar(boton, 'editarBici', [{ idBici: b.id, nombre: c.nombre.input.value, km: c.km.input.value, fechaCompra: c.fc.input.value,
+          precioCompra: c.pc.input.value, salidasPrevias: c.sp.input.value }], function (res) {
+          return 'Bici actualizada ✅' + (res.diferencia > 0 ? ' (+' + km(res.diferencia) + ' a sus piezas)' : '') +
+            (res.piezasFecha > 0 ? ' (' + res.piezasFecha + ' piezas con la fecha de compra)' : '');
+        }, atras);
+      });
+      c.nombre = campo('Nombre', { type: 'text', value: b.nombre });
+      c.km = campo('Km de la bici', { type: 'number', value: String(b.km) }, 'Solo pueden subir; la subida se suma a sus piezas montadas.');
+      c.fc = campo('Fecha de compra', { type: 'date', value: b.fechaCompra || '', max: hoyTexto() });
+      c.pc = campo('Precio (€)', { type: 'number', value: b.precioCompra != null ? String(b.precioCompra) : '' });
+      c.sp = campo('Salidas que ya llevaba', { type: 'number', step: '1', value: b.salidasPrevias != null ? String(b.salidasPrevias) : '' },
+        'Las de antes de la fecha "sumar desde" de Intervals.');
+      var zonaInt = h('div', { class: 'tarjeta' }, h('div', { class: 'sub', text: 'Cargando tus bicis de Intervals...' }));
+      poner(p.cuerpo, [c.nombre.el, c.km.el, h('div', { class: 'dos' }, c.fc.el, c.pc.el), c.sp.el,
+        seccion('Intervals'), zonaInt]);
+      pintarVinculo(b, zonaInt);
+
+      // Zona peligrosa
+      var zonaBorrar = h('div');
+      var baja = botonSeguro('Dar de baja (guarda su historial)', '¿Seguro? Pulsa otra vez', 'peligro', function (boton) {
+        guardar(boton, 'darDeBajaBici', [b.id], 'Bici dada de baja ✅ (la tienes en Ajustes)', alPrincipio);
+      });
+      var borrarTodo = h('button', { type: 'button', class: 'boton peligro ancho', style: 'margin-top:10px', text: 'Borrar del todo...',
+        onclick: function () {
+          borrarTodo.remove();
+          var conf = campo('Escribe el nombre exacto para confirmar: ' + b.nombre, { type: 'text' });
+          var ya = h('button', { type: 'button', class: 'boton peligro seguro ancho', text: 'Borrar para siempre' });
+          ya.addEventListener('click', function () {
+            if (conf.input.value.trim() !== String(b.nombre).trim()) { avisar('El nombre no coincide. No he borrado nada.'); return; }
+            guardar(ya, 'borrarBiciDelTodo', [{ idBici: b.id, nombreConfirmado: conf.input.value }], function (res) {
+              return 'Bici borrada ✅ (' + res.piezas + ' piezas, ' + res.tareas + ' tareas y ' + res.mantenimientos + ' mantenimientos)';
+            }, alPrincipio);
+          });
+          poner(zonaBorrar, [h('p', { class: 'sub', text: 'Se borran la bici, sus piezas, tareas y mantenimientos. No se puede deshacer.' }), conf.el, ya]);
+        } });
+      zonaBorrar.appendChild(borrarTodo);
+      p.cuerpo.appendChild(h('div', { class: 'zona-peligro' }, h('div', { style: 'color:var(--rojo);font-weight:700;margin-bottom:10px', text: 'Zona peligrosa' }),
+        baja, zonaBorrar));
+      return p;
+    }
+
+    function pintarVinculo(b, zona) {
+      llamar('listarBicisIntervals', [b.id], function (d) {
+        vaciar(zona);
+        var estado;
+        if (!d.actual) estado = 'Sin vincular: sus km no se suman solos.';
+        else if (!d.desde) estado = 'Vinculada, pero sin fecha: vuelve a guardar el vínculo.';
+        else estado = 'Vinculada: suma las salidas desde el ' + fechaBonita(d.desde) + (d.desde.substring(11) !== '00:00:00' ? ' a las ' + d.desde.substring(11, 16) : '') + '.';
+        var opciones = [['', '— Sin vincular —']];
+        var esta = false;
+        d.bicis.forEach(function (x) {
+          if (x.id === d.actual) esta = true;
+          opciones.push([x.id, x.nombre + ' · ' + km(x.km) + (x.retirada ? ' (retirada)' : '') + (d.ocupadas[x.id] ? ' · ya en ' + d.ocupadas[x.id] : '')]);
+        });
+        if (d.actual && !esta) opciones.push([d.actual, '(bici que ya no está en Intervals)']);
+        var sel = desplegable('Bici en Intervals', opciones, d.actual);
+        Array.prototype.forEach.call(sel.select.options, function (o) { if (o.value && d.ocupadas[o.value]) o.disabled = true; });
+        var desde = campo('Sumar salidas desde (incluido)', { type: 'date', value: d.desde ? d.desde.substring(0, 10) : hoyTexto(), max: hoyTexto() },
+          'El primer día cuyas salidas NO estén ya en los km de la bici. Si dejas hoy, cuenta desde este momento.');
+        var boton = h('button', { type: 'button', class: 'boton ancho' }, icono('enlace', 20), 'Guardar vínculo');
+        boton.addEventListener('click', function () {
+          guardar(boton, 'vincularBiciIntervals', [{ idBici: b.id, idIntervals: sel.select.value, desde: desde.input.value }], function (r) {
+            return r.sinCambios ? 'Sin cambios: ya estaba así ✅' : (r.nombre ? 'Vinculada con ' + r.nombre + ' ✅' : 'Desvinculada ✅');
+          }, function (r) { pintarVinculo(b, zona); if (!r.sinCambios && r.nombre) sincronizar(); });
+        });
+        poner(zona, [h('div', { style: 'display:flex;gap:10px;align-items:center;margin-bottom:14px' },
+          h('span', { class: 'punto', style: 'background:' + (d.actual ? 'var(--verde)' : 'var(--gris)') }), h('span', { class: 'sub', text: estado })),
+          sel.el, desde.el, boton]);
+      }, function (e) { vaciar(zona).appendChild(h('div', { class: 'sub', text: 'No he podido leer Intervals: ' + e.message })); });
+    }
+
+    // =====================================================================
+    //  NUEVA BICI (asistente en 4 pasos)
+    // =====================================================================
+
+    var PREGUNTAS = [
+      { clave: 'electrica', texto: '¿Es eléctrica?', opciones: [['no', 'No'], ['si', 'Sí']] },
+      { clave: 'frenos', texto: 'Frenos', opciones: [['hidraulico', 'Disco hidráulico'], ['mecanico', 'Disco mecánico'], ['llanta', 'Llanta'], ['sin', 'Sin frenos']] },
+      { clave: 'cambio', texto: 'Cambio', opciones: [['sram', 'Electrónico, batería en cada desviador (SRAM)'], ['shimano', 'Electrónico, batería central (Di2)'], ['mecanico', 'Mecánico'], ['sin', 'Sin cambio']] },
+      { clave: 'platos', texto: 'Platos', opciones: [['1', '1'], ['2', '2'], ['3', '3']] },
+      { clave: 'ruedas', texto: 'Ruedas', opciones: [['camara', 'Con cámara'], ['tubeless', 'Tubeless'], ['tubular', 'Tubular'], ['sin', 'Sin ruedas']] },
+      { clave: 'suspension', texto: 'Suspensión', opciones: [['rigida', 'Rígida'], ['horquilla', 'Solo horquilla'], ['doble', 'Doble']] },
+      { clave: 'tija', texto: 'Tija', opciones: [['normal', 'Normal'], ['telescopica', 'Telescópica']] },
+      { clave: 'manillar', texto: 'Manillar', opciones: [['cinta', 'Con cinta'], ['punos', 'Plano con puños'], ['cabra', 'Cabra']] },
+      { clave: 'mandos', texto: 'Mandos extra de cambio', opciones: [['ninguno', 'Ninguno'], ['punteras', 'Punteras'], ['satelites', 'Satélites / blips']],
+        si: function (r) { return r.cambio !== 'sin'; } },
+      { clave: 'pedales', texto: 'Pedales', opciones: [['automaticos', 'Automáticos'], ['planos', 'Planos']] },
+      { clave: 'potenciometro', texto: 'Potenciómetro', opciones: [['ninguno', 'Ninguno'], ['biela', 'Biela'], ['arana', 'Araña'], ['pedales', 'Pedales'], ['buje', 'Buje']] },
+      { clave: 'pila_manetas', texto: '¿Las manetas llevan pila?', opciones: [['no', 'No'], ['si', 'Sí']],
+        si: function (r) { return r.cambio === 'sram' || r.cambio === 'shimano'; } },
+      { clave: 'pila_potenciometro', texto: '¿El potenciómetro lleva pila?', opciones: [['no', 'No'], ['si', 'Sí']],
+        si: function (r) { return r.potenciometro !== 'ninguno'; } },
+      { clave: 'pila_satelites', texto: '¿Los satélites llevan pila?', opciones: [['no', 'No'], ['si', 'Sí']],
+        si: function (r) { return r.cambio !== 'sin' && r.mandos === 'satelites'; } }
+    ];
+    var NEUTRAS = { mandos: 'ninguno', pila_manetas: 'no', pila_potenciometro: 'no', pila_satelites: 'no' };
+    var EXTRAS = [['luces', 'Luces'], ['ciclocomputador', 'Ciclocomputador'], ['sensores', 'Sensores'], ['radar', 'Radar'],
+      ['portabidones', 'Portabidones'], ['guardabarros', 'Guardabarros'], ['portabultos', 'Portabultos']];
+    var datosAsist = null;
+
+    function pantallaNuevaBici() {
+      var paso = 1;
+      var d = { nombre: '', tipo: 'carretera', km: '0', fechaCompra: '', precioCompra: '', salidasPrevias: '', r: {}, extras: {} };
+      var lista = null, marcadas = {}, originales = {};
+      var atrasBoton = h('button', { type: 'button', class: 'boton', text: 'Atrás' });
+      var sigue = h('button', { type: 'button', class: 'boton principal', text: 'Siguiente' });
+      var p = nuevaPantalla({ titulo: 'Nueva bici', sinBarra: true, pie: [atrasBoton, sigue] });
+      var pasos = h('div', { class: 'pasos' });
+      p.el.insertBefore(pasos, p.cuerpo);
+      var c = {};
+
+      function aplicarTipicas() {
+        var t = (datosAsist.tipicas || {})[d.tipo] || {};
+        PREGUNTAS.forEach(function (q) { d.r[q.clave] = t[q.clave] !== undefined ? t[q.clave] : q.opciones[0][0]; });
+        EXTRAS.forEach(function (e) { d.extras[e[0]] = t[e[0]] === 'si'; });
+      }
+      function respuestas() {
+        var r = {};
+        PREGUNTAS.forEach(function (q) { r[q.clave] = (!q.si || q.si(d.r)) ? d.r[q.clave] : NEUTRAS[q.clave]; });
+        EXTRAS.forEach(function (e) { r[e[0]] = d.extras[e[0]] ? 'si' : 'no'; });
+        return r;
+      }
+      function leerPaso1() {
+        if (!c.nombre) return;
+        d.nombre = c.nombre.input.value.trim();
+        d.km = c.km.input.value;
+        d.fechaCompra = c.fc.input.value;
+        d.precioCompra = c.pc.input.value;
+        d.salidasPrevias = c.sp.input.value;
+      }
+
+      function pintar() {
+        vaciar(pasos);
+        for (var i = 1; i <= 4; i++) pasos.appendChild(h('i', { class: i <= paso ? 'si' : '' }));
+        p.titulo.textContent = ['', 'Nueva bici · datos', 'Cómo es', 'Extras', 'Sus piezas'][paso];
+        vaciar(p.cuerpo);
+        p.cuerpo.scrollTop = 0;
+        atrasBoton.textContent = paso === 1 ? 'Cancelar' : 'Atrás';
+        sigue.textContent = paso === 4 ? 'Crear bici' : 'Siguiente';
+        sigue.disabled = false;
+        if (!datosAsist) {
+          poner(p.cuerpo, esqueleto([60, 60, 60]));
+          llamar('datosAsistente', [], function (x) { datosAsist = x; aplicarTipicas(); pintar(); });
+          return;
+        }
+        if (paso === 1) {
+          c.nombre = campo('Nombre de la bici', { type: 'text', value: d.nombre, placeholder: 'Ej.: Factor' });
+          c.km = campo('Km actuales', { type: 'number', value: d.km });
+          c.fc = campo('Fecha de compra', { type: 'date', value: d.fechaCompra, max: hoyTexto() });
+          c.pc = campo('Precio (€)', { type: 'number', value: d.precioCompra });
+          c.sp = campo('Salidas que ya lleva', { type: 'number', step: '1', value: d.salidasPrevias }, 'Opcional. Las de antes de vincularla con Intervals.');
+          var tipo = chipsUna(datosAsist.tipos.map(function (t) { return [t, mayuscula(t), iconoBici(t, 22)]; }), d.tipo, function (v) { d.tipo = v; aplicarTipicas(); });
+          poner(p.cuerpo, [c.nombre.el, h('div', { class: 'pregunta' }, h('span', { text: 'Tipo' }), tipo.el), c.km.el,
+            h('div', { class: 'dos' }, c.fc.el, c.pc.el), c.sp.el,
+            h('p', { class: 'sub', text: 'Fecha, precio y salidas son opcionales: sirven para el informe de coste.' })]);
+        } else if (paso === 2) {
+          p.cuerpo.appendChild(h('p', { class: 'sub', text: 'Ya viene marcado lo típico de una ' + d.tipo + '. Cambia lo que no cuadre.' }));
+          PREGUNTAS.forEach(function (q) {
+            if (q.si && !q.si(d.r)) return;
+            var g = chipsUna(q.opciones, d.r[q.clave], function (v) { d.r[q.clave] = v; var y = p.cuerpo.scrollTop; pintar(); p.cuerpo.scrollTop = y; });
+            p.cuerpo.appendChild(h('div', { class: 'pregunta' }, h('span', { text: q.texto }), g.el));
+          });
+        } else if (paso === 3) {
+          p.cuerpo.appendChild(h('p', { class: 'sub', text: 'Marca lo que lleva montado.' }));
+          var cont = h('div', { class: 'chips' });
+          EXTRAS.forEach(function (e) {
+            var chip = h('button', { type: 'button', class: 'chip' + (d.extras[e[0]] ? ' si' : ''), text: e[1] });
+            chip.addEventListener('click', function () { d.extras[e[0]] = !d.extras[e[0]]; chip.classList.toggle('si'); });
+            cont.appendChild(chip);
+          });
+          p.cuerpo.appendChild(cont);
+        } else {
+          pintarPiezas();
+        }
+      }
+
+      function pintarPiezas() {
+        if (!lista) {
+          poner(p.cuerpo, esqueleto([50, 200, 200]));
+          sigue.disabled = true;
+          llamar('previsualizarBici', [{ tipo: d.tipo, respuestas: respuestas() }], function (l) {
+            lista = l;
+            l.forEach(function (x) { marcadas[x.clave] = true; originales[x.clave] = true; });
+            pintar();
+          }, function (e) { avisar('Error: ' + e.message); paso = 3; pintar(); });
+          return;
+        }
+        var cuenta = h('b');
+        function contar() { cuenta.textContent = Object.keys(marcadas).filter(function (k) { return marcadas[k]; }).length + ' de ' + lista.length; }
+        contar();
+        var filas = [];
+        p.cuerpo.appendChild(h('div', { class: 'tarjeta', style: 'margin-bottom:12px' },
+          h('div', null, h('span', { class: 'sub' }, 'Piezas: '), cuenta),
+          h('p', { class: 'sub', style: 'margin:8px 0 12px', text: 'Quita las que tu bici no tenga. "Original" = lleva en la bici desde la compra (cuenta para la media de duración).' }),
+          h('div', { class: 'chips' },
+            h('button', { type: 'button', class: 'chip', text: 'Todas originales', onclick: function () { filas.forEach(function (f) { f.orig(true); }); } }),
+            h('button', { type: 'button', class: 'chip', text: 'Ninguna original', onclick: function () { filas.forEach(function (f) { f.orig(false); }); } }))));
+        var orden = [], porGrupo = {};
+        lista.forEach(function (x) {
+          if (!porGrupo[x.grupo]) { porGrupo[x.grupo] = []; orden.push(x.grupo); }
+          porGrupo[x.grupo].push(x);
+        });
+        orden.forEach(function (g) {
+          var bloque = h('div', { class: 'lista' });
+          porGrupo[g].forEach(function (x) {
+            var botonOrig = h('button', { type: 'button', class: 'orig' + (originales[x.clave] ? ' si' : ''), text: 'Original' });
+            var filaEl = h('div', { class: 'pieza-asist' + (marcadas[x.clave] ? '' : ' fuera') },
+              casilla(marcadas[x.clave], function (v) { marcadas[x.clave] = v; filaEl.classList.toggle('fuera', !v); contar(); }),
+              h('div', { class: 'nom', text: x.nombre }, x.tareas.length ? h('small', { text: x.tareas.map(function (t) { return t.nombre + ' (' + textoReloj(t) + ')'; }).join(' · ') }) : null),
+              botonOrig);
+            function orig(v) { originales[x.clave] = v; botonOrig.classList.toggle('si', v); }
+            botonOrig.addEventListener('click', function () { orig(!originales[x.clave]); });
+            filas.push({ orig: orig });
+            bloque.appendChild(filaEl);
+          });
+          p.cuerpo.appendChild(h('div', { class: 'grupo' }, h('div', { class: 'grupo-cab' }, g, h('span', { class: 'cuenta', text: '· ' + porGrupo[g].length })), bloque));
+        });
+      }
+
+      atrasBoton.addEventListener('click', function () {
+        if (paso === 1) { atras(); return; }
+        if (paso === 4) lista = null; // si cambias respuestas, la lista se vuelve a pedir
+        paso--;
+        pintar();
+      });
+      sigue.addEventListener('click', function () {
+        if (paso === 1) {
+          leerPaso1();
+          if (!d.nombre) { avisar('Ponle nombre a la bici.'); return; }
+        }
+        if (paso < 4) { paso++; pintar(); return; }
+        var sel = Object.keys(marcadas).filter(function (k) { return marcadas[k]; });
+        var orig = Object.keys(originales).filter(function (k) { return originales[k]; });
+        sigue.disabled = true;
+        avisar('Creando la bici...');
+        llamar('crearBici', [{ nombre: d.nombre, tipo: d.tipo, km: Number(d.km) || 0, respuestas: respuestas(), seleccion: sel, originales: orig,
+          fechaCompra: d.fechaCompra, precioCompra: d.precioCompra, salidasPrevias: d.salidasPrevias }], function (res) {
+          huboCambio();
+          atras();
+          if (tabActual !== 'garaje') irATab('garaje'); else alPrincipio();
+          avisar('Bici creada ✅ (' + res.piezas + ' piezas y ' + res.tareas + ' tareas)');
+        }, function (e) { sigue.disabled = false; avisar('Error: ' + e.message); });
+      });
+
+      pintar();
+      return p;
+    }
+
+    // =====================================================================
+    //  INFORMES
+    // =====================================================================
+
+    function pantallaInformes() {
+      var p = nuevaPantalla({ raiz: true });
+      var inf = { bicis: [], marcadas: {}, pestana: 'gasto', periodo: 'anio', desde: '', hasta: '', buscar: '', hist: [], peticion: 0 };
+      var zonaBicis = h('div', { class: 'chips rodar' });
+      var zonaPest = h('div', { class: 'segmento', style: 'margin-top:14px' });
+      var zonaPeriodo = h('div', { style: 'margin-top:12px' });
+      var zona = h('div', { style: 'margin-top:6px' });
+      poner(p.cuerpo, [h('div', { class: 'titulo-grande' }, h('div', null, h('div', { class: 'pre', text: 'Lo que llevas gastado y lo que duran' }), h('h1', { text: 'Informes' }))),
+        zonaBicis, zonaPest, zonaPeriodo, zona]);
+
+      p.recargar = function () {
+        llamar('datosInformes', [], function (d) {
+          var antes = inf.marcadas;
+          inf.bicis = d.bicis;
+          inf.marcadas = {};
+          d.bicis.forEach(function (b) { inf.marcadas[b.id] = antes[b.id] !== undefined ? antes[b.id] : true; });
+          pintarFiltros();
+          actualizar();
+        });
+      };
+
+      function ids() { return inf.bicis.filter(function (b) { return inf.marcadas[b.id]; }).map(function (b) { return b.id; }); }
+
+      function pintarFiltros() {
+        vaciar(zonaBicis);
+        // Cada bici marcada se ilumina. "Todas" solo sale si hay más de una bici.
+        // Con todas marcadas, tocar una deja solo esa; si no, la marca o desmarca.
+        var todas = ids().length === inf.bicis.length;
+        if (inf.bicis.length > 1) {
+          zonaBicis.appendChild(h('button', { type: 'button', class: 'chip' + (todas ? ' si' : ''), text: 'Todas', onclick: function () {
+            inf.bicis.forEach(function (b) { inf.marcadas[b.id] = true; });
+            pintarFiltros(); actualizar();
+          } }));
+        }
+        inf.bicis.forEach(function (b) {
+          zonaBicis.appendChild(h('button', { type: 'button', class: 'chip' + (inf.marcadas[b.id] ? ' si' : ''),
+            text: b.nombre + (b.baja ? ' (baja)' : ''), onclick: function () {
+              if (todas && inf.bicis.length > 1) inf.bicis.forEach(function (x) { inf.marcadas[x.id] = x.id === b.id; });
+              else inf.marcadas[b.id] = !inf.marcadas[b.id];
+              pintarFiltros(); actualizar();
+            } }));
+        });
+        enfocarChip(zonaBicis);
+        vaciar(zonaPest);
+        [['gasto', 'Gasto'], ['dur', 'Duración'], ['hist', 'Historial'], ['coste', 'Coste']].forEach(function (x) {
+          zonaPest.appendChild(h('button', { type: 'button', class: inf.pestana === x[0] ? 'si' : '', text: x[1], onclick: function () {
+            inf.pestana = x[0]; pintarFiltros(); actualizar();
+          } }));
+        });
+        vaciar(zonaPeriodo);
+        if (inf.pestana === 'gasto' || inf.pestana === 'hist') {
+          var per = h('div', { class: 'chips rodar' });
+          [['mes', 'Este mes'], ['mesPasado', 'Mes pasado'], ['anio', 'Este año'], ['anioPasado', 'Año pasado'], ['todo', 'Siempre'], ['medida', 'A medida']].forEach(function (x) {
+            per.appendChild(h('button', { type: 'button', class: 'chip' + (inf.periodo === x[0] ? ' si' : ''), text: x[1], onclick: function () {
+              inf.periodo = x[0];
+              if (x[0] === 'medida' && !inf.desde) { inf.desde = new Date().getFullYear() + '-01-01'; inf.hasta = hoyTexto(); }
+              pintarFiltros(); actualizar();
+            } }));
+          });
+          zonaPeriodo.appendChild(per);
+          enfocarChip(per);
+          if (inf.periodo === 'medida') {
+            var de = campo('Desde', { type: 'date', value: inf.desde });
+            var a = campo('Hasta', { type: 'date', value: inf.hasta });
+            de.input.addEventListener('change', function () { inf.desde = de.input.value; actualizar(); });
+            a.input.addEventListener('change', function () { inf.hasta = a.input.value; actualizar(); });
+            zonaPeriodo.appendChild(h('div', { class: 'dos', style: 'margin-top:12px' }, de.el, a.el));
+          }
+        }
+      }
+
+      function periodo() {
+        var hoy = new Date(), y = hoy.getFullYear(), m = hoy.getMonth();
+        switch (inf.periodo) {
+          case 'mes': return { desde: textoDia(new Date(y, m, 1)), hasta: textoDia(new Date(y, m + 1, 0)) };
+          case 'mesPasado': return { desde: textoDia(new Date(y, m - 1, 1)), hasta: textoDia(new Date(y, m, 0)) };
+          case 'anio': return { desde: y + '-01-01', hasta: y + '-12-31' };
+          case 'anioPasado': return { desde: (y - 1) + '-01-01', hasta: (y - 1) + '-12-31' };
+          case 'medida': return { desde: inf.desde, hasta: inf.hasta };
+          default: return { desde: '', hasta: '' };
+        }
+      }
+
+      function actualizar() {
+        var lista = ids();
+        var yo = ++inf.peticion;
+        vaciar(zona);
+        if (!lista.length) { zona.appendChild(vacio('bici', 'Elige al menos una bici')); return; }
+        var per = periodo();
+        if (inf.periodo === 'medida' && (!per.desde || !per.hasta)) { zona.appendChild(vacio('calendario', 'Pon las dos fechas')); return; }
+        poner(zona, esqueleto([150, 200, 120]));
+        var f = { gasto: 'informeGasto', dur: 'informeDuracion', hist: 'informeHistorial', coste: 'informeCoste' }[inf.pestana];
+        var datos = { idsBicis: lista, desde: per.desde, hasta: per.hasta };
+        var pestana = inf.pestana;
+        llamar(f, [datos], function (r) {
+          if (yo !== inf.peticion) return;
+          vaciar(zona);
+          if (pestana === 'gasto') pintarGasto(r, lista.length);
+          else if (pestana === 'dur') pintarDuracion(r);
+          else if (pestana === 'hist') { inf.hist = r.lista; pintarHistorial(); }
+          else pintarCoste(r);
+        }, function (e) {
+          if (yo !== inf.peticion) return;
+          vaciar(zona).appendChild(vacio('aviso', 'No he podido calcularlo', e.message));
+        });
+      }
+
+      function pintarGasto(r, nBicis) {
+        if (!r.trabajos) { zona.appendChild(vacio('euro', 'Nada gastado en ese periodo', 'Tu cartera lo agradece. 🎉')); return; }
+        zona.appendChild(h('div', { class: 'heroe', style: 'margin-top:12px' },
+          h('div', { class: 'sub', style: 'position:relative', text: r.trabajos + (r.trabajos === 1 ? ' trabajo' : ' trabajos') }),
+          h('div', { class: 'total-grande', style: 'position:relative', text: eur(r.total) }),
+          h('div', { style: 'position:relative' }, repartoBarra(r.piezas, r.manoObra))));
+        if (r.meses.length) {
+          var meses = r.meses.slice().reverse();
+          var max = Math.max.apply(null, meses.map(function (x) { return x.total; })) || 1;
+          var graf = h('div', { class: 'grafico' });
+          meses.forEach(function (x) {
+            graf.appendChild(h('div', { class: 'columna' }, h('b', { text: eurCorto(Math.round(x.total)) }),
+              h('i', { style: 'height:' + Math.max(3, x.total / max * 100) + '%' }),
+              h('span', { text: MESES_C[Number(x.mes.substring(5, 7)) - 1] + (meses.length > 12 ? ' ' + x.mes.substring(2, 4) : '') })));
+          });
+          zona.appendChild(seccion('Por mes'));
+          zona.appendChild(h('div', { class: 'tarjeta' }, graf));
+        }
+        if (nBicis > 1 && r.bicis.length) {
+          zona.appendChild(seccion('Por bici'));
+          var maxB = r.bicis[0].total || 1;
+          var lista = h('div', { class: 'lista' });
+          r.bicis.forEach(function (b) {
+            lista.appendChild(h('div', { class: 'fila', style: 'cursor:default;flex-direction:column;align-items:stretch;gap:0' },
+              h('div', { style: 'display:flex;justify-content:space-between;gap:10px' }, h('b', { text: b.nombre }), h('b', { text: eur(b.total) })),
+              h('div', { class: 'barra-h' }, h('i', { style: 'width:' + (b.total / maxB * 100) + '%' })),
+              h('div', { class: 'sub', style: 'margin-top:6px', text: 'Piezas ' + eurCorto(b.piezas) + ' · Mano de obra ' + eurCorto(b.manoObra) + ' · ' + b.trabajos + (b.trabajos === 1 ? ' trabajo' : ' trabajos') })));
+          });
+          zona.appendChild(lista);
+        }
+      }
+
+      function pintarDuracion(r) {
+        zona.appendChild(h('p', { class: 'sub', style: 'margin-top:14px', text: 'Cuánto duraron las piezas que ya has cambiado (toda su vida, no depende del periodo).' }));
+        if (!r.tipos.length) { zona.appendChild(vacio('reloj', 'Aún no has cambiado ninguna pieza', 'Cuando sustituyas o retires alguna, aquí verás cuánto duró.')); return; }
+        r.tipos.forEach(function (t) {
+          var tarjeta = h('div', { class: 'tarjeta', style: 'margin-bottom:12px' });
+          var n = t.retiradas.length;
+          tarjeta.appendChild(h('div', { style: 'display:flex;justify-content:space-between;align-items:baseline;gap:10px' },
+            h('b', { style: 'font-size:17px', text: t.nombre }), h('span', { class: 'sub', text: n + (n === 1 ? ' cambiada' : ' cambiadas') })));
+          if (t.mediaKm != null) {
+            tarjeta.appendChild(h('div', { class: 'baldosas' },
+              h('div', { class: 'baldosa' }, h('span', { text: 'Media' }), h('b', { text: km(t.mediaKm) })),
+              h('div', { class: 'baldosa' }, h('span', { text: 'Días' }), h('b', { text: t.mediaDias != null ? miles(t.mediaDias) : '?' })),
+              h('div', { class: 'baldosa' }, h('span', { text: '€ / 1.000 km' }), h('b', { text: t.costeMilKm != null ? eurCorto(t.costeMilKm) : '—' }))));
+          } else {
+            tarjeta.appendChild(h('p', { class: 'sub', text: '❔ Sin media todavía: ninguna de las cambiadas tenía la vida conocida.' }));
+          }
+          if (t.enUso.length) {
+            tarjeta.appendChild(h('div', { class: 'sub', style: 'margin:14px 0 4px;font-weight:700', text: 'EN USO AHORA' }));
+            t.enUso.forEach(function (u) {
+              var pct = t.mediaKm ? Math.round(u.km / t.mediaKm * 100) : null;
+              var color = pct == null ? 'var(--gris)' : (pct >= 100 ? 'var(--rojo)' : (pct >= 95 ? 'var(--amarillo)' : 'var(--verde)'));
+              tarjeta.appendChild(h('div', { style: 'margin-top:10px' },
+                h('div', { style: 'display:flex;justify-content:space-between;gap:10px;font-size:14px' },
+                  h('span', { text: u.bici + ' · ' + km(u.km) }), pct != null ? h('b', { style: 'color:' + color, text: pct + '%' }) : null),
+                pct != null ? h('div', { class: 'barra-h' }, h('i', { style: 'width:' + Math.min(100, pct) + '%;background:' + color })) : null));
+            });
+          }
+          var det = h('details', { class: 'plegable', style: 'margin-top:14px' },
+            h('summary', { class: 'sub', style: 'font-weight:700;color:var(--naranja)', text: 'Ver las ' + n + ' cambiadas ›' }));
+          t.retiradas.forEach(function (x) {
+            det.appendChild(h('div', { class: 'sub', style: 'padding:8px 0;border-top:1px solid var(--linea)',
+              text: (x.cuenta ? '' : '❔ ') + x.bici + ' · ' + fechaBonita(x.montaje) + ' → ' + fechaBonita(x.retirada) + ' · ' + km(x.km) + ' · ' +
+                (x.dias == null ? '? días' : textoDias(x.dias)) + ' · ' + eurCorto(x.coste) + (x.cuenta ? '' : ' · no cuenta') }));
+          });
+          tarjeta.appendChild(det);
+          zona.appendChild(tarjeta);
+        });
+      }
+
+      function pintarHistorial() {
+        var busc = h('input', { type: 'search', placeholder: 'Buscar: cadena, taller, lavado...', value: inf.buscar });
+        var resumen = h('div', { class: 'sub', style: 'margin-bottom:10px' });
+        var lista = h('div');
+        zona.appendChild(h('div', { class: 'buscador', style: 'margin-top:14px' }, icono('lupa', 20), busc));
+        zona.appendChild(resumen);
+        zona.appendChild(lista);
+        function filtrar() {
+          inf.buscar = busc.value;
+          var q = sinTildes(busc.value.trim());
+          var l = inf.hist.filter(function (r) { return !q || sinTildes([r.bici, r.pieza, r.queSeHizo, r.donde, r.notas].join(' ')).indexOf(q) !== -1; });
+          vaciar(lista);
+          if (!l.length) { resumen.textContent = ''; lista.appendChild(vacio('lupa', inf.hist.length ? 'Nada coincide' : 'Sin mantenimientos en ese periodo')); return; }
+          var total = 0;
+          var caja = h('div', { class: 'lista' });
+          l.forEach(function (r) {
+            total += r.costePiezas + r.costeManoObra;
+            caja.appendChild(fila({ t1: r.queSeHizo, t2: fechaBonita(r.fecha) + ' · ' + r.bici + ' · ' + r.pieza + (r.donde ? ' · ' + r.donde : '') + (r.notas ? ' · ' + r.notas : ''),
+              derecha: h('b', { style: 'white-space:nowrap', text: eurCorto(r.costePiezas + r.costeManoObra) }) }));
+          });
+          lista.appendChild(caja);
+          resumen.textContent = l.length + (l.length === 1 ? ' trabajo' : ' trabajos') + ' · Total ' + eur(total);
+        }
+        busc.addEventListener('input', filtrar);
+        filtrar();
+      }
+
+      function pintarCoste(r) {
+        zona.appendChild(h('p', { class: 'sub', style: 'margin-top:14px', text: 'Precio de compra + todos sus mantenimientos, repartido por día, por salida y por km.' }));
+        r.bicis.forEach(function (b) {
+          function baldosa(etiqueta, valor, falta) {
+            return h('div', { class: 'baldosa' + (valor == null ? ' falta' : '') }, h('span', { text: etiqueta }), h('b', { text: valor == null ? falta : valor }));
+          }
+          var pistas = [];
+          if (b.costeDia == null) pistas.push('fecha de compra');
+          if (b.costeSalida == null) pistas.push('salidas que ya lleva');
+          zona.appendChild(h('div', { class: 'tarjeta', style: 'margin-bottom:12px' },
+            h('div', { style: 'display:flex;justify-content:space-between;align-items:baseline;gap:10px' },
+              h('b', { style: 'font-size:17px', text: b.nombre + (b.baja ? ' (baja)' : '') }), h('b', { style: 'font-size:20px', text: eur(b.total) })),
+            h('div', { class: 'sub', text: (b.precio != null ? 'Compra ' + eurCorto(b.precio) : 'Sin precio de compra') + ' + mantenimientos ' + eurCorto(b.mantenimientos) }),
+            h('div', { class: 'baldosas' },
+              baldosa('Por día', b.costeDia != null ? eur(b.costeDia) : null, 'Falta fecha'),
+              baldosa('Por salida', b.costeSalida != null ? eur(b.costeSalida) : null, 'Sin salidas'),
+              baldosa('Por km', b.costeKm != null ? eurFino(b.costeKm) : null, '—')),
+            b.costeSalida != null ? h('div', { class: 'sub', style: 'margin-top:10px', text: miles(b.salidas) + ' salidas' +
+              (b.salidasPrevias != null ? ' (' + miles(b.salidasPrevias) + ' previas + ' + miles(b.salidasSync) + ' de Intervals)' : '') + ' · ' + km(b.km) }) : null,
+            pistas.length ? h('div', { class: 'sub', style: 'margin-top:10px;color:var(--tenue)', text: 'Para completarlo: pon ' + pistas.join(' y ') + ' en Editar bici.' }) : null));
+        });
+      }
+
+      return p;
+    }
+
+    // =====================================================================
+    //  AJUSTES
+    // =====================================================================
+
+    function pantallaAjustes() {
+      var p = nuevaPantalla({ raiz: true });
+      var zonaSync = h('div', { class: 'tarjeta' });
+      var zonaConexion = h('div', { class: 'tarjeta' });
+      var zonaBajas = h('div');
+      poner(p.cuerpo, [h('div', { class: 'titulo-grande' }, h('div', null, h('div', { class: 'pre', text: 'Conexiones y cosas de la app' }), h('h1', { text: 'Ajustes' }))),
+        seccion('Intervals.icu'), zonaSync, seccion('Conexión con tu hoja'), zonaConexion, seccion('Bicis dadas de baja'), zonaBajas]);
+
+      function pintarSync() {
+        vaciar(zonaSync);
+        var e = estadoSyncTexto();
+        var boton = h('button', { type: 'button', class: 'boton ancho' + (sync.estado === 'mirando' ? ' girando' : ''), style: 'margin-top:14px',
+          onclick: sincronizar, disabled: sync.estado === 'mirando' }, icono('sync', 20), 'Mirar Intervals ahora');
+        poner(zonaSync, [h('div', { style: 'display:flex;gap:10px;align-items:center' }, h('span', { class: 'punto', style: 'background:' + e.color }), h('b', { text: e.texto })),
+          h('p', { class: 'sub', text: 'Al abrir la app se suman solas las salidas nuevas de las bicis vinculadas y se corrigen los cambios de los últimos 30 días. Para vincular una bici: entra en ella › lápiz › Intervals.' })]);
+        var sinBici = (sync.r && sync.r.sinBici) || [];
+        if (sinBici.length) {
+          zonaSync.appendChild(h('div', { style: 'color:var(--amarillo);font-weight:700;margin:12px 0 6px', text: '⚠️ Salidas sin bici: ponles bici en Intervals y se sumarán solas' }));
+          sinBici.slice(0, 8).forEach(function (s) { zonaSync.appendChild(h('div', { class: 'sub', text: '· ' + fechaBonita(s.fecha) + ' · ' + s.nombre + ' · ' + km(s.km) })); });
+          if (sinBici.length > 8) zonaSync.appendChild(h('div', { class: 'sub', text: '· y ' + (sinBici.length - 8) + ' más' }));
+        }
+        zonaSync.appendChild(boton);
+      }
+      vigilantesSync.push(pintarSync);
+      pintarSync();
+
+      // Dirección de la puerta y clave (guardadas en este navegador)
+      function pintarConexion() {
+        vaciar(zonaConexion);
+        var corta = conf.url ? 'script.google.com/…' + conf.url.replace(/\/exec$/, '').slice(-8) + '/exec' : 'sin dirección';
+        poner(zonaConexion, [
+          h('div', { style: 'display:flex;gap:10px;align-items:center' }, h('span', { class: 'punto', style: 'background:var(--verde)' }), h('b', { text: 'Guardada en este dispositivo' })),
+          h('p', { class: 'sub', style: 'word-break:break-all', text: 'Puerta: ' + corta + ' · Clave: ••••••' }),
+          h('button', { type: 'button', class: 'boton ancho', onclick: function () { mostrarConfig({}); } }, icono('enlace', 20), 'Cambiar dirección o clave'),
+          h('div', { style: 'margin-top:10px' }, botonSeguro('Olvidar en este dispositivo', '¿Seguro? Tendrás que volver a escribirlas', 'peligro', function () {
+            olvidarConfig();
+            mostrarConfig({ primera: true });
+          }))]);
+      }
+
+      p.recargar = function () {
+        pintarConexion();
+        vaciar(zonaBajas);
+        poner(zonaBajas, esqueleto([70]));
+        llamar('cargarGaraje', [], function (d) {
+          ponerG(d);
+          vaciar(zonaBajas);
+          if (!d.bajas.length) { zonaBajas.appendChild(h('div', { class: 'tarjeta sub', text: 'Ninguna. Cuando des de baja una bici (lápiz › Zona peligrosa) aparecerá aquí con su historial guardado.' })); return; }
+          var lista = h('div', { class: 'lista' });
+          d.bajas.forEach(function (b) {
+            var rec = h('button', { type: 'button', class: 'boton chico', text: 'Recuperar' });
+            rec.addEventListener('click', function () { guardar(rec, 'recuperarBici', [b.id], 'Bici recuperada ✅', function () { mostrar(p); }); });
+            lista.appendChild(fila({ icono: h('span', { style: 'color:var(--tenue)' }, iconoBici(b.tipo, 30)), t1: b.nombre, t2: mayuscula(b.tipo) + ' · ' + km(b.km), derecha: rec }));
+          });
+          zonaBajas.appendChild(lista);
+        });
+      };
+
+      // Leyenda de colores
+      function leyenda(color, titulo, texto) {
+        return h('div', { style: 'display:flex;gap:12px;align-items:flex-start;padding:8px 0' }, h('span', { class: 'punto', style: 'width:12px;height:12px;border-radius:6px;margin-top:4px;background:' + color }),
+          h('div', null, h('b', { text: titulo }), h('div', { class: 'sub', text: texto })));
+      }
+      poner(p.cuerpo, [seccion('Qué significan los colores'), h('div', { class: 'tarjeta' },
+        leyenda('var(--verde)', 'Bien', 'Menos del 95 % gastado.'),
+        leyenda('var(--azul)', 'Próximo', 'Del 80 al 95 %: sale solo en la pestaña Avisos, para ir comprando.'),
+        leyenda('var(--amarillo)', 'Aviso', 'Desde el 95 %: ve preparándolo.'),
+        leyenda('var(--rojo)', 'Vencida', 'Del 100 % en adelante: ya toca.'),
+        leyenda('var(--gris)', 'Sin aviso', 'Pieza con los avisos apagados.')),
+        seccion('Acerca de'), h('div', { class: 'tarjeta' }, h('b', { text: 'Biketenance' }),
+          h('p', { class: 'sub', text: 'Tus datos viven en tu hoja de Google "Mantenimiento Bicis": puedes abrirla o descargarla cuando quieras.' }),
+          h('div', { class: 'sub', text: 'Versión: ' + VERSION_APP }))]);
+      return p;
+    }
+
+    // =====================================================================
+    //  Arranque
+    // =====================================================================
+
+    var arrancada = false;
+    function arrancar() {
+      if (arrancada) return;
+      arrancada = true;
+      montarBarra();
+      var raiz = pantallaGaraje();
+      pilas.garaje.push(raiz);
+      contenedor.appendChild(raiz.el);
+      actualizarBarra();
+      mostrar(raiz);
+      sincronizar();
+    }
+
+    document.getElementById('mensaje').addEventListener('click', function () { avisar(''); });
+    // Si se recarga la página, la marca vieja del historial ya no sirve: se limpia
+    try { if (historiaOk && window.history.state) window.history.replaceState(null, ''); } catch (e) { /* nada */ }
+    if (conf.url && conf.clave) arrancar();
+    else mostrarConfig({ primera: true });
+  </script>
+</body>
+</html>
