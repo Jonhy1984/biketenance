@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Biketenance · versión GitHub 2 (app instalable) · 16 nov 2026 (sale del rediseño v3 de Apps Script) -->
+<!-- Biketenance · versión GitHub 3 (enlace de conexión, varias personas) · 16 nov 2026 (sale del rediseño v3 de Apps Script) -->
 <!-- Va en: GitHub, repositorio biketenance, archivo index.html -->
 <html lang="es">
 <head>
@@ -269,7 +269,7 @@
   </div>
 
   <script>
-    var VERSION_APP = 'GitHub 2 (app instalable) · 16 nov 2026';
+    var VERSION_APP = 'GitHub 3 (enlace de conexión) · 16 nov 2026';
 
     // =====================================================================
     //  Utilidades
@@ -547,9 +547,9 @@
     function mostrarConfig(op) {
       op = op || {};
       if (capaConfig) return;
-      var url = campo('Dirección de la puerta', { type: 'url', value: conf.url, placeholder: 'https://script.google.com/macros/s/.../exec',
+      var url = campo('Dirección de la puerta', { type: 'url', value: op.url || conf.url, placeholder: 'https://script.google.com/macros/s/.../exec',
         autocapitalize: 'off' }, 'La "URL puerta" que tienes apuntada (implementación "fase 5 puerta"). Empieza por https://script.google.com y acaba en /exec.');
-      var clave = campo('Clave de la app', { type: 'password', value: conf.clave, autocapitalize: 'off' },
+      var clave = campo('Clave de la app', { type: 'password', value: op.clave || conf.clave, autocapitalize: 'off' },
         'La APP_KEY de las propiedades del script. Se guarda solo en este navegador.');
       url.input.spellcheck = false;
       clave.input.spellcheck = false;
@@ -915,6 +915,7 @@
       if (sync.estado === 'ok') {
         var r = sync.r;
         if (r.ocupado) return { color: 'var(--amarillo)', texto: 'Intervals: ya se estaba sincronizando' };
+        if (r.sinIntervals) return { color: 'var(--gris)', texto: 'Sin Intervals: km a mano' };
         if (r.sinVinculos) return { color: 'var(--gris)', texto: 'Ninguna bici vinculada con Intervals' };
         var n = (r.sinBici || []).length;
         if (n) return { color: 'var(--amarillo)', texto: n + (n === 1 ? ' salida' : ' salidas') + ' sin bici en Intervals · ' + r.hora };
@@ -2116,7 +2117,48 @@
     document.getElementById('mensaje').addEventListener('click', function () { avisar(''); });
     // Si se recarga la página, la marca vieja del historial ya no sirve: se limpia
     try { if (historiaOk && window.history.state) window.history.replaceState(null, ''); } catch (e) { /* nada */ }
-    if (conf.url && conf.clave) arrancar();
+    // Fase 6 · Enlace de conexión: .../biketenance/#u=PUERTA&k=CLAVE (lo da el menú ⚙️ Biketenance de la hoja)
+    // Se lee una vez, se borra de la barra de direcciones y se guarda como la conexión de este navegador.
+    function leerEnlace() {
+      var hash = String(window.location.hash || '');
+      if (hash.indexOf('#u=') !== 0) return null;
+      var datos = {};
+      hash.substring(1).split('&').forEach(function (par) {
+        var i = par.indexOf('=');
+        if (i > 0) { try { datos[par.substring(0, i)] = decodeURIComponent(par.substring(i + 1)); } catch (e) { /* nada */ } }
+      });
+      try { window.history.replaceState(null, '', window.location.pathname + window.location.search); } catch (e) { /* nada */ }
+      if (!datos.u || !datos.k || !/^https:\/\/script\.google\.com\/.+\/exec$/.test(datos.u)) return { malo: true };
+      return { url: datos.u, clave: datos.k };
+    }
+
+    var enlace = leerEnlace();
+    if (enlace && enlace.malo) {
+      mostrarConfig({ primera: !(conf.url && conf.clave), motivo: 'El enlace de conexión está incompleto. Pide otro.' });
+      if (conf.url && conf.clave) arrancar();
+    } else if (enlace && conf.url && conf.clave && (enlace.url !== conf.url || enlace.clave !== conf.clave)) {
+      // Ya había otra conexión en este navegador: no se pisa sin preguntar
+      arrancar();
+      mostrarConfig({ url: enlace.url, clave: enlace.clave,
+        motivo: 'Este enlace es de otra cuenta. Si quieres cambiar a ella, pulsa "Probar y guardar". Si no, Cancelar.' });
+    } else if (enlace && !(conf.url && conf.clave)) {
+      avisar('Conectando...');
+      pedirPuerta(enlace.url, enlace.clave, 'ping', []).then(function (res) {
+        if (res && res.ok && res.r === 'pong') {
+          var guardada = guardarConfig(enlace.url, enlace.clave);
+          arrancar();
+          avisar(guardada === false ? 'Conectada ✅ (este navegador no deja guardarla: se olvidará al cerrar)' : 'Conectada ✅ Ya puedes instalar la app.');
+          return;
+        }
+        var t = (res && res.error) || 'Respuesta rara de la puerta.';
+        avisar('');
+        mostrarConfig({ primera: true, url: enlace.url, clave: enlace.clave,
+          motivo: t === 'Clave incorrecta.' ? 'Este enlace ya no vale (clave dada de baja). Pide otro.' : t });
+      }, function (e) {
+        avisar('');
+        mostrarConfig({ primera: true, url: enlace.url, clave: enlace.clave, motivo: e.message + ' Luego pulsa "Probar y guardar".' });
+      });
+    } else if (conf.url && conf.clave) arrancar();
     else mostrarConfig({ primera: true });
 
     // App instalable: da de alta el "mozo de almacén" (sw.js). Si el navegador no lo admite, la app funciona igual.
